@@ -42,8 +42,7 @@ export default ( {
 					               : Array.isArray(_childs) ? _childs : [],
 					allItems     = !infinite
 					               ? [...children]
-					               : [...children, ...children, ...children, ...children, ...children, ...children]
-					,
+					               : [...children, ...children, ...children, ...children, ...children, ...children],
 					nbGhostItems = allItems.length,
 					step         = 100 * overlaps,
 					dec          = infinite ? children.length * step : 0,
@@ -105,8 +104,6 @@ export default ( {
 						maxJump,
 						shouldLoop  : infinite && (( v, d ) => {
 							let { windowSize } = state;
-							//console.log('Slider:::234: ', d > 0 && (v) >= (100 + windowSize * 2), d < 0 && (v) <=
-							// (100 + windowSize));
 							
 							if ( d > 0 && (v) >= (100 + windowSize * 2) )
 								return -windowSize;
@@ -126,10 +123,6 @@ export default ( {
 			[state, infinite, visibleItems, maxJump]
 		),
 		api                = React.useMemo(() => ({
-			doClick        : ( e ) => {
-				e.stopPropagation();
-				e.preventDefault();
-			},
 			updateItemsAxes: ( pos ) => {
 				let cPos = ((pos - 100) / locals.state.step);
 				locals.allItemRefs.forEach(
@@ -149,18 +142,6 @@ export default ( {
 					}
 				)
 			},
-			updateHeight   : () => {
-				let { index = this.props.defaultIndex, sliderHeight } = this.state;
-				clearTimeout(this._autoHeightTm);
-				try {
-					let h = ReactDOM.findDOMNode(this.slideRefs[index]);
-					if ( sliderHeight !== (h.offsetHeight + 'px') )
-						this.setState({ sliderHeight: h.offsetHeight + 'px' })
-				} catch ( e ) {
-				
-				}
-				this._autoHeightTm = setTimeout(this.updateHeight, 500)
-			},
 			goNext() {
 				let { step, windowSize, nbItems } = locals.state,
 				    nextIndex                     = ((nbItems + locals.index + 1) % (locals.state.nbItems));
@@ -170,14 +151,6 @@ export default ( {
 				//	tweener.scrollTo(100 + windowSize - step, 0, scrollDir);
 				
 				setIndex(nextIndex)
-			},
-			goTo( index, then ) {
-				let { step, windowSize, nbItems } = this.state,
-				    { tweener, scrollDir }        = this.props;
-				this._then                        = then;
-				//if ( this.state.index > nextIndex )
-				//	tweener.scrollTo(100 + windowSize - step, 0, scrollDir);
-				this.setState({ index })
 			}
 		}), []);
 	
