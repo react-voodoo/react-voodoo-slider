@@ -40,7 +40,6 @@ export default ( {
 					               ?
 					               [...items]
 					               : Array.isArray(_childs) ? _childs : [],
-					//{ index = defaultIndex, sliderHeight } = state,
 					allItems     = !infinite
 					               ? [...children]
 					               : [...children, ...children, ...children, ...children, ...children, ...children]
@@ -162,7 +161,6 @@ export default ( {
 				}
 				this._autoHeightTm = setTimeout(this.updateHeight, 500)
 			},
-			
 			goNext() {
 				let { step, windowSize, nbItems } = locals.state,
 				    nextIndex                     = ((nbItems + locals.index + 1) % (locals.state.nbItems));
@@ -173,7 +171,6 @@ export default ( {
 				
 				setIndex(nextIndex)
 			},
-			
 			goTo( index, then ) {
 				let { step, windowSize, nbItems } = this.state,
 				    { tweener, scrollDir }        = this.props;
@@ -241,14 +238,9 @@ export default ( {
 					},
 					mouseOver = () => {
 						locals.hovering = true
-						clearTimeout(updaterTM);
 					},
 					mouseOut  = () => {
 						locals.hovering = false;
-						updaterTM       = setTimeout(
-							updater,
-							autoScroll
-						)
 					};
 				updaterTM     = setTimeout(
 					updater,

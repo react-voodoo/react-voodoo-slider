@@ -1,6 +1,6 @@
 {
   "name": "react-voodoo-slider",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "MIT",
   "main": "./dist/react-voodoo-slider.js",
   "author": "Nathan Braun <n8tz.js@gmail.com>",
