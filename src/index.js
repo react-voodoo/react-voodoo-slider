@@ -146,10 +146,6 @@ export default ( {
 				let { step, windowSize, nbItems } = locals.state,
 				    nextIndex                     = ((nbItems + locals.index + 1) % (locals.state.nbItems));
 				
-				//console.log(this.state.index, nextIndex)
-				//if ( this.state.index > nextIndex )
-				//	tweener.scrollTo(100 + windowSize - step, 0, scrollDir);
-				
 				setIndex(nextIndex)
 			}
 		}), []);
