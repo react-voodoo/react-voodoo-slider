@@ -1,23 +1,24 @@
 {
   "name": "react-voodoo-slider",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "license": "MIT",
   "main": "./dist/react-voodoo-slider.js",
   "author": "Nathan Braun <n8tz.js@gmail.com>",
-  "repository": "https://github.com/n8tz/react-voodoo-slider",
-  "description": "Ultimate react slider",
+  "repository": "https://github.com/n8tz/react-voodoo-carousel",
+  "description": "Ultimate React carousel",
   "scripts": {
     "build": "lpack && lpack :samples",
     "devLib": "lpack :staging -w",
     "devSamples": "lpack-dev-server :samplesDev --hot --host 0.0.0.0",
     "startSamples": "ws -d ./dist.samples -p 8080",
-    "runBrowser": "start http://localhost:8080"
+    "runBrowser": "start http://localhost:8080",
+    "setupLayers": "lpack-setup"
   },
   "peerDependencies": {},
   "dependencies": {
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
-    "react-voodoo": "^2.2.2"
+    "react-voodoo": "^2.2.4"
   },
   "devDependencies": {
     "layer-pack": "^2.0.10",

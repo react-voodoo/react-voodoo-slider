@@ -33,18 +33,18 @@ import "./samples.scss";
 
 const stubs = [
 	{
-		label     : "Test",
-		summary   : "Test khjjhk kh kjh k\njkkhkjh kh kj",
+		label          : "Test",
+		summary        : "Test khjjhk kh kjh k\njkkhkjh kh kj",
 		backgroundImage: "https://source.unsplash.com/500x200/?forest"
 	},
 	{
-		label     : "Test 2",
-		summary   : "Test khjjhk kh kjh k\njkkhkjh kh kj",
+		label          : "Test 2",
+		summary        : "Test khjjhk kh kjh k\njkkhkjh kh kj",
 		backgroundImage: "https://source.unsplash.com/500x200/?sky"
 	},
 	{
-		label     : "Test 3",
-		summary   : "Test khjjhk kh kjh k\njkkhkjh kh kj",
+		label          : "Test 3",
+		summary        : "Test khjjhk kh kjh k\njkkhkjh kh kj",
 		backgroundImage: "https://source.unsplash.com/500x200/?bridge"
 	}
 ]
@@ -83,6 +83,6 @@ function renderSamples() {
 
 renderSamples()
 //
-//if ( process.env.NODE_ENV !== 'production' && module.hot ) {
-//	module.hot.accept('.', renderSamples);
-//}
+if ( process.env.NODE_ENV !== 'production' && module.hot ) {
+	module.hot.accept('.', renderSamples);
+}

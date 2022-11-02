@@ -1,5 +1,5 @@
 <h1 align="center">react-voodoo-slider</h1>
-<p align="center">Advanced slider powered by react-voodoo</p>
+<p align="center">Advanced slider/carousel powered by react-voodoo</p>
 
 ___
 
@@ -29,4 +29,3 @@ react-voodoo is an additive tweener for react
 MIT license
 
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](#)
-[![*](https://www.google-analytics.com/collect?v=1&tid=UA-82058889-1&cid=555&t=event&ec=project&ea=view&dp=%2Fproject%2Freact-voodoo&dt=readme)](#)

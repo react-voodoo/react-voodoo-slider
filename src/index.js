@@ -14,26 +14,32 @@ function useTracked( refs ) {
 export default ( {
 	                 defaultIndex = 0,
 	                 defaultInitial,
+	                 defaultEntering,
+	                 defaultLeaving,
 	                 style = {},
 	                 onClick,
+	                 onChange,
+	                 onWillChange,
 	                 infinite,
 	                 maxJump,
 	                 visibleItems,
 	                 dragHook,
-	                 items, renderItem,
+	                 items,
+	                 renderItem,
 	                 children: _childs,
 	                 overlaps = 1 / ((visibleItems - (visibleItems % 2)) || 1),
-	                 defaultEntering,
-	                 defaultLeaving,
-	                 index: pIndex, autoScroll,
+	                 index,
+	                 autoScroll,
+	                 autoScrollEaseFn = "easeQuadInOut",
+	                 autoScrollEaseDuration = 750,
 	                 className = ""
                  } ) => {
 	const
-		[tweener, ViewBox] = Voodoo.hook(),
-		rootRef            = React.useRef(),
-		allItemRefs        = React.useRef([]).current,
-		[index, setIndex]  = React.useState(pIndex !== undefined ? pIndex : defaultIndex),
-		state              = React.useMemo(
+		[tweener, ViewBox]              = Voodoo.hook(),
+		rootRef                         = React.useRef(),
+		allItemRefs                     = React.useRef([]).current,
+		[currentIndex, setCurrentIndex] = React.useState(index !== undefined ? index : defaultIndex),
+		state                           = React.useMemo(
 			() => {
 				let
 					children     = items && renderItem
@@ -77,22 +83,33 @@ export default ( {
 					windowSize: children.length * step,
 				}
 			},
-			[items,
+			[
+				items,
 				renderItem,
-				_childs, infinite, overlaps]
+				_childs,
+				infinite,
+				overlaps
+			]
 		),
-		locals             = useTracked({
-			                                items,
-			                                renderItem,
-			                                _childs,
-			                                allItemRefs,
-			                                state,
-			                                index, infinite, visibleItems
-		                                }),
-		axisConf           = React.useMemo(
+		locals                          = useTracked(
+			{
+				items,
+				renderItem,
+				onChange,
+				onWillChange,
+				autoScrollEaseFn,
+				autoScrollEaseDuration,
+				_childs,
+				allItemRefs,
+				state,
+				currentIndex,
+				infinite,
+				visibleItems
+			}),
+		axisConf                        = React.useMemo(
 			() => (
 				{
-					defaultPosition : 100 + state.dec + locals.index * state.step,
+					defaultPosition : 100 + state.dec + locals.currentIndex * state.step,
 					size            : state.nbGhostItems * state.step + 100,
 					scrollableWindow: visibleItems * state.step,
 					bounds          : !infinite && {
@@ -112,9 +129,16 @@ export default ( {
 								return windowSize;
 						}),
 						willSnap    : ( i, v ) => {
-							let { nbItems }     = locals.state;
+							let { nbItems }     = locals.state,
+							    nextIndex       = (i) % nbItems;
 							locals._wasUserSnap = true;
-							setIndex((i) % nbItems);
+							setCurrentIndex(nextIndex);
+							locals.onWillChange?.(nextIndex, locals.items?.[nextIndex])
+						},
+						onSnap      : ( i, v ) => {
+							let { nbItems } = locals.state,
+							    newIndex    = (i) % nbItems;
+							locals.onChange?.(newIndex, locals.items?.[newIndex])
 						},
 						wayPoints   : state.allItems.map(( child, i ) => ({ at: 100 + i * state.step }))
 					}
@@ -122,7 +146,7 @@ export default ( {
 			),
 			[state, infinite, visibleItems, maxJump]
 		),
-		api                = React.useMemo(() => ({
+		api                             = React.useMemo(() => ({
 			updateItemsAxes: ( pos ) => {
 				let cPos = ((pos - 100) / locals.state.step);
 				locals.allItemRefs.forEach(
@@ -144,9 +168,15 @@ export default ( {
 			},
 			goNext() {
 				let { step, windowSize, nbItems } = locals.state,
-				    nextIndex                     = ((nbItems + locals.index + 1) % (locals.state.nbItems));
+				    nextIndex                     = ((nbItems + locals.currentIndex + 1) % (locals.state.nbItems));
 				
-				setIndex(nextIndex)
+				setCurrentIndex(nextIndex)
+			},
+			goTo( targetIndex ) {
+				let { step, windowSize, nbItems } = locals.state,
+				    nextIndex                     = ((nbItems + targetIndex) % (locals.state.nbItems));
+				
+				setCurrentIndex(nextIndex)
 			}
 		}), []);
 	
@@ -154,33 +184,52 @@ export default ( {
 		() => {
 			if ( locals._wasUserSnap ) {
 				locals._wasUserSnap = false;
-				locals.prevIndex    = index;
+				locals.prevIndex    = currentIndex || 0;
 				return;
 			}
 			let { step, dec, nbItems } = locals.state;
 			locals.prevIndex           = locals.prevIndex || 0;
-			if ( infinite && Math.abs(locals.prevIndex - index) > Math.abs(nbItems - locals.prevIndex + index) ) {
-				//console.log('locals:::204:next ', locals.prevIndex, index);
-				tweener.scrollTo(dec + step * (nbItems + index) + 100, 750, "slideAxis", "easeQuadInOut")
+			
+			locals.onWillChange?.(currentIndex, locals.items?.[currentIndex]);
+			
+			if ( infinite && Math.abs(locals.prevIndex - currentIndex) > Math.abs(nbItems - locals.prevIndex + currentIndex) ) {
+				//console.log('locals:::204:next ', locals.prevIndex, currentIndex);
+				tweener.scrollTo(dec + step * (nbItems + currentIndex) + 100, locals.autoScrollEaseDuration, "slideAxis", locals.autoScrollEaseFn)
 				       .then(() => {
-					       tweener.scrollTo(dec + step * index + 100, 0, "slideAxis");
-					       //then?.()
+					       tweener.scrollTo(dec + step * currentIndex + 100, 0, "slideAxis");
+					       locals.onChange?.(currentIndex, locals.items?.[currentIndex])
 				       });
 			}
-			else if ( infinite && Math.abs(index - locals.prevIndex) > Math.abs(nbItems - index + locals.prevIndex) ) {
-				//console.log('locals:::204:prec ', locals.prevIndex, index);
-				tweener.scrollTo(dec + step * (-(nbItems - index)) + 100, 750, "slideAxis", "easeQuadInOut")
+			else if ( infinite && Math.abs(currentIndex - locals.prevIndex) > Math.abs(nbItems - currentIndex + locals.prevIndex) ) {
+				//console.log('locals:::204:prec ', locals.prevIndex, currentIndex);
+				tweener.scrollTo(dec + step * (-(nbItems - currentIndex)) + 100, locals.autoScrollEaseDuration, "slideAxis", locals.autoScrollEaseFn)
 				       .then(() => {
-					       tweener.scrollTo(dec + step * index + 100, 0, "slideAxis");
-					       //then?.()
+					       tweener.scrollTo(dec + step * currentIndex + 100, 0, "slideAxis");
+					       locals.onChange?.(currentIndex, locals.items?.[currentIndex])
 				       });
 			}
 			else {
-				tweener.scrollTo(dec + step * index + 100, 750, "slideAxis", "easeQuadInOut");
+				tweener.scrollTo(dec + step * currentIndex + 100, locals.autoScrollEaseDuration, "slideAxis", locals.autoScrollEaseFn)
+				       .then(() => {
+					       locals.onChange?.(currentIndex, locals.items?.[currentIndex])
+				       });
 			}
-			locals.prevIndex = index;
+			locals.prevIndex = currentIndex;
 		},
-		[index, infinite]
+		[currentIndex, infinite]
+	)
+	React.useEffect(
+		() => {
+			tweener.scrollTo(state.dec + state.step * currentIndex + 100, 0);
+		},
+		[state.nbItems, state.dec, state.step]
+	)
+	React.useEffect(
+		() => {
+			if ( index !== undefined )
+				api.goTo(index);
+		},
+		[index]
 	)
 	React.useEffect(
 		() => {
@@ -227,7 +276,7 @@ export default ( {
 		[autoScroll]
 	)
 	return <ViewBox
-		className={"rSlide Slider " + className}
+		className={"VoodooCarousel Carousel " + className}
 		style={
 			{
 				userSelect: "none",

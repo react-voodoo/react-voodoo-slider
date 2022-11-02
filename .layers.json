@@ -39,8 +39,6 @@
           "browsers": "> 0.25%, not dead, safari >= 7, ios_saf >= 7, chrome >= 52"
         },
         "loose": true
-      },
-      "webpackPatch": {
       }
     },
     "extend": [
@@ -64,13 +62,6 @@
           "browsers": "> 0.25%, not dead, safari >= 7, ios_saf >= 7, chrome >= 52"
         },
         "loose": true
-      },
-      "webpackPatch": {
-        "resolve": {
-          "alias": {
-            "react-voodoo-slider": "dist/react-voodoo-slider.js"
-          }
-        }
       }
     },
     "extend": [
@@ -94,13 +85,6 @@
           "browsers": "> 0.25%, not dead, safari >= 7, ios_saf >= 7, chrome >= 52"
         },
         "loose": true
-      },
-      "webpackPatch": {
-        "resolve": {
-          "alias": {
-            "react-voodoo-slider": "dist/react-voodoo-slider.js"
-          }
-        }
       }
     },
     "extend": [
