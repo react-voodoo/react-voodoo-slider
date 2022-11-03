@@ -49,29 +49,28 @@ const stubs = [
 	}
 ]
 
-class App extends React.Component {
-	state = {};
-	
-	render() {
-		return <div className={"sample"}>
-			
-			<Slider
-				key={"mainSlider"}
-				{...sliderStyles}
-				ignorePropsIndex={true}
-				infinite={true}
-				autoScroll={10 * 1000}
-			>
-				{
-					stubs?.map(
-						( rec, i ) =>
-							<Slide record={rec} key={i}/>
-					) || <></>
-				}
-			</Slider>
-		
-		</div>
-	}
+const App = () => {
+	const [slideIndex, setSlideIndex] = React.useState(0);
+	return <div className={"sample"}>
+		<div className={"btnPrev"} onClick={e => setSlideIndex(slideIndex - 1 % stubs.length)}>&lt;</div>
+		<Slider
+			key={"mainSlider"}
+			{...sliderStyles}
+			infinite={true}
+			autoScroll={10 * 1000}
+			index={slideIndex}
+			onWillChange={i => setSlideIndex(i)}
+		>
+			{
+				stubs?.map(
+					( rec, i ) =>
+						<Slide record={rec} key={i}/>
+				) || <></>
+			}
+		</Slider>
+		<div className={"btnNext"} onClick={e => setSlideIndex((slideIndex + 1) % stubs.length)}>&gt;</div>
+		<div className={"slideInfos"}>{slideIndex}</div>
+	</div>
 }
 
 function renderSamples() {

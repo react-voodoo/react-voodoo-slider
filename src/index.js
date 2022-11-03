@@ -174,8 +174,7 @@ export default ( {
 			},
 			goTo( targetIndex ) {
 				let { step, windowSize, nbItems } = locals.state,
-				    nextIndex                     = ((nbItems + targetIndex) % (locals.state.nbItems));
-				
+				    nextIndex                     = ((nbItems + targetIndex) % (nbItems));
 				setCurrentIndex(nextIndex)
 			}
 		}), []);
