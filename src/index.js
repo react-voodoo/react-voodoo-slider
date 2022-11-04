@@ -1,6 +1,6 @@
-import React    from "react";
-import ReactDOM from "react-dom";
-import Voodoo   from "react-voodoo";
+import React  from "react";
+import Voodoo from "react-voodoo";
+import styles from "./styles/(*).js";
 
 function useTracked( refs ) {
 	
@@ -11,18 +11,21 @@ function useTracked( refs ) {
 	return scope;
 }
 
+export let customStyles = styles;
 export default ( {
 	                 defaultIndex = 0,
-	                 defaultInitial,
-	                 defaultEntering,
-	                 defaultLeaving,
+	                 defaultStyle = "default",
+	                 defaultInitial = styles[defaultStyle]?.defaultInitial,
+	                 defaultEntering = styles[defaultStyle]?.defaultEntering,
+	                 defaultLeaving = styles[defaultStyle]?.defaultLeaving,
+	                 visibleItems = styles[defaultStyle]?.visibleItems,
 	                 style = {},
+	                 _style = { ...styles[defaultStyle]?.carouselStyle, ...style },
 	                 onClick,
 	                 onChange,
 	                 onWillChange,
 	                 infinite,
 	                 maxJump,
-	                 visibleItems,
 	                 dragHook,
 	                 items,
 	                 renderItem,
@@ -278,8 +281,7 @@ export default ( {
 		className={"VoodooCarousel Carousel " + className}
 		style={
 			{
-				userSelect: "none",
-				...style
+				..._style
 			}
 		}
 		ref={rootRef}

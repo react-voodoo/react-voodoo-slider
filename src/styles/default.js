@@ -5,13 +5,22 @@
 
 export const visibleItems = 1;
 
+export const carouselStyle   = {
+	position  : "relative",
+	overflow  : "hidden",
+	userSelect: "none",
+	transform : [
+		{
+			translateZ: "0px"
+		}]
+};
 export const defaultInitial  = {
-	position : "absolute",
-	height   : "100%",
-	width    : "100%",
-	top      : "0%",
-	left     : "0%",
-	zIndex   : 50,
+	position: "absolute",
+	height  : "100%",
+	width   : "100%",
+	top     : "0%",
+	left    : "0%",
+	zIndex  : 50,
 	//opacity  : 0,
 	transform: [
 		{

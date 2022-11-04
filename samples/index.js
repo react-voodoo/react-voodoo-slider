@@ -23,12 +23,11 @@
  *   @author : Nathanael Braun
  *   @contact : n8tz.js@gmail.com
  */
-import React    from "react";
-import ReactDom from "react-dom";
-import Slide    from "./comps/Slide";
-import Slider   from "..";
+import React                  from "react";
+import ReactDom               from "react-dom";
+import Slide                  from "./comps/Slide";
+import Slider, {customStyles} from "..";
 
-import * as sliderStyles from "./index.styles";
 import "./samples.scss";
 
 const stubs = [
@@ -55,7 +54,6 @@ const App = () => {
 		<div className={"btnPrev"} onClick={e => setSlideIndex(slideIndex - 1 % stubs.length)}>&lt;</div>
 		<Slider
 			key={"mainSlider"}
-			{...sliderStyles}
 			infinite={true}
 			autoScroll={10 * 1000}
 			index={slideIndex}

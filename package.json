@@ -1,11 +1,11 @@
 {
   "name": "react-voodoo-slider",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "license": "MIT",
   "main": "./dist/react-voodoo-slider.js",
   "author": "Nathan Braun <n8tz.js@gmail.com>",
   "repository": "https://github.com/n8tz/react-voodoo-carousel",
-  "description": "Ultimate React carousel",
+  "description": "The ultimate React carousel",
   "scripts": {
     "build": "lpack && lpack :samples",
     "devLib": "lpack :staging -w",
