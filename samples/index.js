@@ -27,29 +27,37 @@ import React                  from "react";
 import ReactDom               from "react-dom";
 import Slide                  from "./comps/Slide";
 import Slider, {customStyles} from "..";
+import * as myCustomStyle     from "./example.style";
 
 import "./samples.scss";
 
-const stubs = [
+customStyles.myCustomStyle = myCustomStyle;
+const stubs                = [
 	{
 		label          : "Test",
 		summary        : "Test khjjhk kh kjh k\njkkhkjh kh kj",
-		backgroundImage: "https://source.unsplash.com/500x200/?forest"
+		backgroundImage: "https://source.unsplash.com/500x300/?magic"
 	},
 	{
 		label          : "Test 2",
 		summary        : "Test khjjhk kh kjh k\njkkhkjh kh kj",
-		backgroundImage: "https://source.unsplash.com/500x200/?sky"
+		backgroundImage: "https://source.unsplash.com/500x300/?sky"
 	},
 	{
 		label          : "Test 3",
 		summary        : "Test khjjhk kh kjh k\njkkhkjh kh kj",
-		backgroundImage: "https://source.unsplash.com/500x200/?bridge"
+		backgroundImage: "https://source.unsplash.com/500x300/?forge"
+	},
+	{
+		label          : "Test 4",
+		summary        : "Test khjjhk kh kjh k\njkkhkjh kh kj",
+		backgroundImage: "https://source.unsplash.com/500x300/?bridge"
 	}
 ]
 
 const App = () => {
-	const [slideIndex, setSlideIndex] = React.useState(0);
+	const [slideIndex, setSlideIndex] = React.useState(0),
+	      [styleId, setStyleId]       = React.useState("default");
 	return <div className={"sample"}>
 		<div className={"btnPrev"} onClick={e => setSlideIndex(slideIndex - 1 % stubs.length)}>&lt;</div>
 		<Slider
@@ -57,6 +65,7 @@ const App = () => {
 			infinite={true}
 			autoScroll={10 * 1000}
 			index={slideIndex}
+			defaultStyleId={styleId}
 			onWillChange={i => setSlideIndex(i)}
 		>
 			{
@@ -68,6 +77,18 @@ const App = () => {
 		</Slider>
 		<div className={"btnNext"} onClick={e => setSlideIndex((slideIndex + 1) % stubs.length)}>&gt;</div>
 		<div className={"slideInfos"}>{slideIndex}</div>
+		<div className={"slideStyles"}>
+			{
+				Object.keys(customStyles)
+				      .map(
+					      id =>
+						      <div className={"style " + (styleId === id ? "selected" : "")}
+						           onClick={e => setStyleId(id)}>
+							      {id}
+						      </div>
+				      )
+			}
+		</div>
 	</div>
 }
 

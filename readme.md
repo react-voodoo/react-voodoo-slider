@@ -18,8 +18,8 @@ Functionalities :
 - Customizable slide & intra slide entering / leaving / visible animations
 - .. all funcs i'v ever needed or dreamed in a slider
 
-Mini demo [here](http://htmlpreview.github.io/?https://github.com/react-voodoo/react-voodoo-slider/blob/master/dist.samples/index.html)
-
+Mini demo [here](http://htmlpreview.github.io/?https://github.com/react-voodoo/react-voodoo-slider/blob/master/dist.samples/index.html)<br/>
+Demo sources [here](./samples)
 ## wtf is react-voodoo ?
 
 react-voodoo is an additive tweener for react

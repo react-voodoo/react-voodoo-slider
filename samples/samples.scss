@@ -79,6 +79,31 @@ body, html, #app, .app {
     font-size: 4em;
   }
 
+  .slideStyles {
+    position: absolute;
+    left: 0;
+    bottom: 100%;
+    right: 0;
+    font-weight: bolder;
+    font-size: 1.5em;
+    color: #12191a;
+    text-align: center;
+    >*{
+      display: inline-block;
+      padding: .25em;
+      cursor: pointer;
+      text-transform: capitalize;
+    }
+    >*:hover {
+      text-decoration: underline;
+    }
+
+    >*.selected {
+      text-decoration: underline;
+      color: black;
+    }
+  }
+
   .Carousel {
     flex: 10;
     height: 100%;

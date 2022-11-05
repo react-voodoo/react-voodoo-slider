@@ -14,13 +14,13 @@ function useTracked( refs ) {
 export let customStyles = styles;
 export default ( {
 	                 defaultIndex = 0,
-	                 defaultStyle = "default",
-	                 defaultInitial = styles[defaultStyle]?.defaultInitial,
-	                 defaultEntering = styles[defaultStyle]?.defaultEntering,
-	                 defaultLeaving = styles[defaultStyle]?.defaultLeaving,
-	                 visibleItems = styles[defaultStyle]?.visibleItems,
+	                 defaultStyleId = "default",
+	                 defaultInitial = styles[defaultStyleId]?.defaultInitial,
+	                 defaultEntering = styles[defaultStyleId]?.defaultEntering,
+	                 defaultLeaving = styles[defaultStyleId]?.defaultLeaving,
+	                 visibleItems = styles[defaultStyleId]?.visibleItems,
 	                 style = {},
-	                 _style = { ...styles[defaultStyle]?.carouselStyle, ...style },
+	                 _style = { ...styles[defaultStyleId]?.carouselStyle, ...style },
 	                 onClick,
 	                 onChange,
 	                 onWillChange,
@@ -30,9 +30,9 @@ export default ( {
 	                 items,
 	                 renderItem,
 	                 children: _childs,
-	                 overlaps = 1 / ((visibleItems - (visibleItems % 2)) || 1),
 	                 index,
 	                 autoScroll,
+	                 overlaps     = 1 / ((visibleItems - (visibleItems % 2)) || 1),
 	                 autoScrollEaseFn = "easeQuadInOut",
 	                 autoScrollEaseDuration = 750,
 	                 className = ""
@@ -51,7 +51,7 @@ export default ( {
 					               : Array.isArray(_childs) ? _childs : [],
 					allItems     = !infinite
 					               ? [...children]
-					               : [...children, ...children, ...children, ...children, ...children, ...children],
+					               : [...children, ...children, ...children],
 					nbGhostItems = allItems.length,
 					step         = 100 * overlaps,
 					dec          = infinite ? children.length * step : 0,
@@ -76,6 +76,7 @@ export default ( {
 					}))
 				}
 				return {
+					overlaps,
 					allItems,
 					allItemRefs,
 					nbGhostItems,
@@ -89,9 +90,13 @@ export default ( {
 			[
 				items,
 				renderItem,
+				overlaps,
 				_childs,
 				infinite,
-				overlaps
+				defaultInitial,
+				defaultEntering,
+				defaultLeaving,
+				visibleItems
 			]
 		),
 		locals                          = useTracked(
@@ -222,16 +227,19 @@ export default ( {
 	)
 	React.useEffect(
 		() => {
-			tweener.scrollTo(state.dec + state.step * currentIndex + 100, 0);
+			if ( !locals.firstDrawDone )
+				return locals.firstDrawDone = true;
+			tweener.axes.slideAxis?.scrollTo(state.dec + state.step * currentIndex + 100, 0);
+			api.updateItemsAxes(state.dec + state.step * currentIndex + 100);
 		},
-		[state.nbItems, state.dec, state.step]
+		[state.dec, state.step]
 	)
 	React.useEffect(
 		() => {
 			if ( index !== undefined )
 				api.goTo(index);
 		},
-		[index]
+		[index, defaultStyleId]
 	)
 	React.useEffect(
 		() => {
