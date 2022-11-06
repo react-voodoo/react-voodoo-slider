@@ -88,6 +88,9 @@ body, html, #app, .app {
     font-size: 1.5em;
     color: #12191a;
     text-align: center;
+    .regenBtn{
+      float: right;
+    }
     >*{
       display: inline-block;
       padding: .25em;

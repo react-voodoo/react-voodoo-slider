@@ -32,7 +32,7 @@ export default ( {
 	                 children: _childs,
 	                 index,
 	                 autoScroll,
-	                 overlaps     = 1 / ((visibleItems - (visibleItems % 2)) || 1),
+	                 overlaps = 1 / ((visibleItems - (visibleItems % 2)) || 1),
 	                 autoScrollEaseFn = "easeQuadInOut",
 	                 autoScrollEaseDuration = 750,
 	                 className = ""
@@ -112,6 +112,7 @@ export default ( {
 				state,
 				currentIndex,
 				infinite,
+				autoScroll,
 				visibleItems
 			}),
 		axisConf                        = React.useMemo(
@@ -178,12 +179,32 @@ export default ( {
 				let { step, windowSize, nbItems } = locals.state,
 				    nextIndex                     = ((nbItems + locals.currentIndex + 1) % (locals.state.nbItems));
 				
-				setCurrentIndex(nextIndex)
+				api.goTo(nextIndex)
 			},
 			goTo( targetIndex ) {
 				let { step, windowSize, nbItems } = locals.state,
 				    nextIndex                     = ((nbItems + targetIndex) % (nbItems));
 				setCurrentIndex(nextIndex)
+			},
+			updateCurrentPosition() {
+				let nextCurrentIndex    = locals.prevIndex = locals.currentIndex = locals.currentIndex % locals.state.nbItems;
+				locals._updateAfterMove = false;
+				tweener.axes.slideAxis?.scrollTo(locals.state.dec + locals.state.step * nextCurrentIndex + 100, 0);
+				api.updateItemsAxes(locals.state.dec + locals.state.step * nextCurrentIndex + 100);
+				setCurrentIndex(nextCurrentIndex)
+			},
+			autoScrollUpdater( skip ) {
+				let { nbItems } = locals.state,
+				    nextIndex   = ((nbItems + locals.currentIndex + 1) % (nbItems));
+				if ( !locals.autoScroll )
+					return;
+				if ( !locals.hovering && !skip )
+					setCurrentIndex(nextIndex);
+				clearTimeout(locals.updaterTM);
+				locals.updaterTM = setTimeout(
+					tm => api.autoScrollUpdater(),
+					locals.autoScroll
+				)
 			}
 		}), []);
 	
@@ -197,28 +218,37 @@ export default ( {
 			let { step, dec, nbItems } = locals.state;
 			locals.prevIndex           = locals.prevIndex || 0;
 			
-			locals.onWillChange?.(currentIndex, locals.items?.[currentIndex]);
+			api.autoScrollUpdater(true);
 			
+			locals.onWillChange?.(currentIndex, locals.items?.[currentIndex]);
+			locals._isMoving = true;
 			if ( infinite && Math.abs(locals.prevIndex - currentIndex) > Math.abs(nbItems - locals.prevIndex + currentIndex) ) {
-				//console.log('locals:::204:next ', locals.prevIndex, currentIndex);
 				tweener.scrollTo(dec + step * (nbItems + currentIndex) + 100, locals.autoScrollEaseDuration, "slideAxis", locals.autoScrollEaseFn)
 				       .then(() => {
 					       tweener.scrollTo(dec + step * currentIndex + 100, 0, "slideAxis");
-					       locals.onChange?.(currentIndex, locals.items?.[currentIndex])
+					       locals._isMoving = false;
+					       if ( locals._updateAfterMove )
+						       api.updateCurrentPosition()
+					       locals.onChange?.(locals.currentIndex, locals.items?.[locals.currentIndex])
 				       });
 			}
 			else if ( infinite && Math.abs(currentIndex - locals.prevIndex) > Math.abs(nbItems - currentIndex + locals.prevIndex) ) {
-				//console.log('locals:::204:prec ', locals.prevIndex, currentIndex);
 				tweener.scrollTo(dec + step * (-(nbItems - currentIndex)) + 100, locals.autoScrollEaseDuration, "slideAxis", locals.autoScrollEaseFn)
 				       .then(() => {
 					       tweener.scrollTo(dec + step * currentIndex + 100, 0, "slideAxis");
-					       locals.onChange?.(currentIndex, locals.items?.[currentIndex])
+					       locals._isMoving = false;
+					       if ( locals._updateAfterMove )
+						       api.updateCurrentPosition()
+					       locals.onChange?.(locals.currentIndex, locals.items?.[locals.currentIndex])
 				       });
 			}
 			else {
 				tweener.scrollTo(dec + step * currentIndex + 100, locals.autoScrollEaseDuration, "slideAxis", locals.autoScrollEaseFn)
 				       .then(() => {
-					       locals.onChange?.(currentIndex, locals.items?.[currentIndex])
+					       locals._isMoving = false;
+					       if ( locals._updateAfterMove )
+						       api.updateCurrentPosition()
+					       locals.onChange?.(locals.currentIndex, locals.items?.[locals.currentIndex])
 				       });
 			}
 			locals.prevIndex = currentIndex;
@@ -229,15 +259,19 @@ export default ( {
 		() => {
 			if ( !locals.firstDrawDone )
 				return locals.firstDrawDone = true;
-			tweener.axes.slideAxis?.scrollTo(state.dec + state.step * currentIndex + 100, 0);
-			api.updateItemsAxes(state.dec + state.step * currentIndex + 100);
+			if ( !locals._isMoving )
+				api.updateCurrentPosition()
+			else
+				locals._updateAfterMove = true;
 		},
-		[state.dec, state.step]
+		[state.dec, state.step, state.nbItems]
 	)
 	React.useEffect(
 		() => {
-			if ( index !== undefined )
+			if ( index !== undefined ) {
 				api.goTo(index);
+				
+			}
 		},
 		[index, defaultStyleId]
 	)
@@ -255,23 +289,14 @@ export default ( {
 		() => {
 			if ( autoScroll ) {
 				let
-					updaterTM,
-					updater   = tm => {
-						if ( !locals.hovering )
-							api.goNext();
-						updaterTM = setTimeout(
-							updater,
-							autoScroll
-						)
-					},
-					mouseOver = () => {
+					mouseOver    = () => {
 						locals.hovering = true
 					},
-					mouseOut  = () => {
+					mouseOut     = () => {
 						locals.hovering = false;
 					};
-				updaterTM     = setTimeout(
-					updater,
+				locals.updaterTM = setTimeout(
+					api.autoScrollUpdater,
 					autoScroll
 				)
 				rootRef.current.addEventListener("mouseover", mouseOver)
@@ -279,19 +304,15 @@ export default ( {
 				return () => {
 					rootRef.current.removeEventListener("mouseover", mouseOver)
 					rootRef.current.removeEventListener("mouseout", mouseOut)
-					clearTimeout(updaterTM);
+					clearTimeout(locals.updaterTM);
 				}
 			}
 		},
 		[autoScroll]
 	)
 	return <ViewBox
-		className={"VoodooCarousel Carousel " + className}
-		style={
-			{
-				..._style
-			}
-		}
+		className={"VoodooSlider Carousel " + className}
+		style={_style}
 		ref={rootRef}
 	>
 		<Voodoo.Axis

@@ -9,10 +9,7 @@ export const carouselStyle   = {
 	position  : "relative",
 	overflow  : "hidden",
 	userSelect: "none",
-	transform : [
-		{
-			translateZ: "0px"
-		}]
+	transform : "translateZ(0px)"
 };
 export const defaultInitial  = {
 	position: "absolute",
