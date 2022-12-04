@@ -4,7 +4,7 @@
  */
 
 let stepAngle             = "2.05deg";
-export const visibleItems = 5;
+export const visibleItems = 7;
 
 export const carouselStyle   = {
 	position  : "relative",
@@ -14,11 +14,11 @@ export const carouselStyle   = {
 };
 export const defaultInitial  = {
 	position : "absolute",
-	height   : "65%",
-	width    : "55%",
+	height   : "25em",
+	width    : "40em",
 	top      : "50%",
 	left     : "50%",
-	fontSize : ".6em",
+	fontSize : ".5em",
 	zIndex   : 50,
 	opacity  : 0,
 	transform: [

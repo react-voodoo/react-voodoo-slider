@@ -19,8 +19,6 @@ export default ( {
 	                 defaultEntering = styles[defaultStyleId]?.defaultEntering,
 	                 defaultLeaving = styles[defaultStyleId]?.defaultLeaving,
 	                 visibleItems = styles[defaultStyleId]?.visibleItems,
-	                 style = {},
-	                 _style = { ...styles[defaultStyleId]?.carouselStyle, ...style },
 	                 onClick,
 	                 onChange,
 	                 onWillChange,
@@ -35,6 +33,8 @@ export default ( {
 	                 overlaps = 1 / ((visibleItems - (visibleItems % 2)) || 1),
 	                 autoScrollEaseFn = "easeQuadInOut",
 	                 autoScrollEaseDuration = 750,
+	                 style = {},
+	                 _style = { ...styles[defaultStyleId]?.carouselStyle, ...style },
 	                 className = ""
                  } ) => {
 	const
@@ -45,27 +45,27 @@ export default ( {
 		state                           = React.useMemo(
 			() => {
 				let
-					children     = items && renderItem
-					               ?
-					               [...items]
-					               : Array.isArray(_childs) ? _childs : [],
-					allItems     = !infinite
-					               ? [...children]
-					               : [...children, ...children, ...children],
-					nbGhostItems = allItems.length,
-					step         = 100 * overlaps,
-					dec          = infinite ? children.length * step : 0,
-					scrollAxis   = [
+					children            = items && renderItem
+					                      ?
+					                      [...items]
+					                      : Array.isArray(_childs) ? _childs : [],
+					nbGhosts            = infinite ? Math.max(~~(visibleItems / children.length), 1) : 0,
+					allItems            = !infinite
+					                      ? [...children]
+					                      : Array(nbGhosts).fill(1).reduce(( list, i ) => ([...children, ...list, ...children]), [...children]),
+					nbInstantiatedItems = allItems.length,
+					step                = 100 * overlaps,
+					dec                 = infinite ? nbGhosts*(children.length * step) : 0,
+					scrollAxis          = [
 						...defaultEntering,
 						...Voodoo.tools.offset(defaultLeaving, 100)
 					],
-					tweenLines   = allItems.map(( e, i ) => ({
+					tweenLines          = allItems.map(( e, i ) => ({
 						slideAxis: Voodoo.tools.offset(
 							scrollAxis,
 							i * step
 						)
 					}));
-				
 				if ( items && renderItem ) {
 					allItems = allItems.map(( elem, i ) => renderItem(elem, i, ref => (allItemRefs[i] = ref)))
 				}
@@ -79,7 +79,7 @@ export default ( {
 					overlaps,
 					allItems,
 					allItemRefs,
-					nbGhostItems,
+					nbInstantiatedItems,
 					nbItems   : children.length,
 					step,
 					dec,
@@ -119,11 +119,11 @@ export default ( {
 			() => (
 				{
 					defaultPosition : 100 + state.dec + locals.currentIndex * state.step,
-					size            : state.nbGhostItems * state.step + 100,
+					size            : state.nbInstantiatedItems * state.step + 100,
 					scrollableWindow: visibleItems * state.step,
 					bounds          : !infinite && {
 						min: 100,
-						max: state.dec + state.nbGhostItems * state.step,
+						max: state.dec + state.nbInstantiatedItems * state.step,
 					} || undefined,
 					inertia         : {
 						snapToBounds: false,
