@@ -832,7 +832,7 @@ var visibleItems = 3;
 var defaultInitial = {
   position: "absolute",
   height: "100%",
-  width: "33.3333333%",
+  width: "33%",
   top: "0%",
   left: "100%",
   zIndex: 50,
@@ -855,7 +855,7 @@ var defaultEntering = [{
   //easeFn  : "easeSinIn",
   apply: {
     transform: [{
-      translateX: "-200%"
+      translateX: "-202%"
     }]
   }
 }];
@@ -864,7 +864,7 @@ var defaultLeaving = [{
   duration: 100,
   apply: {
     transform: [{
-      translateX: "-200%"
+      translateX: "-202%"
     }]
   }
 }];
