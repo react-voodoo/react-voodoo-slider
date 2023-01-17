@@ -7,7 +7,7 @@
  */
 
 import * as React from "react";
-import Voodoo                from "react-voodoo";
+import Voodoo     from "react-voodoo";
 
 export default ( {
 	                 children, record,
@@ -21,12 +21,12 @@ export default ( {
 				{
 					label  : {
 						style: {
-							position: "absolute",
-							top     : "20%",
-							left    : "5%",
-							right   : "30%",
-							color   : "white",
-							fontSize: "4em",
+							position : "absolute",
+							top      : "20%",
+							left     : "5%",
+							right    : "30%",
+							color    : "white",
+							fontSize : "4em",
 							opacity  : 0,
 							transform: [{
 								translateY: "-5em"
@@ -123,7 +123,11 @@ export default ( {
 			<div className={"content"}>
 				{
 					record.backgroundImage &&
-					<img src={record.backgroundImage}/>
+					<img src={record.backgroundImage} className={"ghost"} draggable={false}/>
+				}
+				{
+					record.backgroundImage &&
+					<img src={record.backgroundImage} draggable={false}/>
 				}
 				
 				<Voodoo.Node.div className={"label"} {...styles.label}>

@@ -6,6 +6,7 @@
   position: relative;
   text-align: left;
   background: rgb(168, 168, 168);
+  user-select: none;
 
   > .content {
     @include use_hvCenteredAbs();
@@ -52,6 +53,7 @@
       &.ghost {
         height: auto;
         width: 140%;
+        min-height: 100%;
 
         filter: blur(20px);
       }

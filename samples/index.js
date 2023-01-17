@@ -27,12 +27,12 @@ import React                  from "react";
 import ReactDom               from "react-dom";
 import Slide                  from "./comps/Slide";
 import Slider, {customStyles} from "..";
-import * as myCustomStyle     from "./example.style";
+import myCustomStyles         from "./styles/(*).js";
 
 import "./samples.scss";
 
-customStyles.myCustomStyle = myCustomStyle;
-const stubThemes           = ["magic", "sky", "forge", "birds", "bridge", "cat", "eye", "ship", "car", "sunset", "forest", "boobs"];
+Object.assign(customStyles, myCustomStyles);
+const stubThemes = ["magic", "sky", "forge", "birds", "bridge", "cat", "eye", "ship", "car", "sunset", "forest", "boobs"];
 
 function generateStubs() {
 	let count = Math.max(~~(Math.random() * 30), 5),
