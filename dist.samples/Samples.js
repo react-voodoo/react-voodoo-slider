@@ -756,13 +756,12 @@ __webpack_require__.r(__webpack_exports__);
 var visibleItems = 5;
 var defaultInitial = {
   position: "absolute",
-  height: "100%",
+  height: "70%",
   width: "25%",
-  top: "0%",
+  top: "15%",
   left: "100%",
   zIndex: 50,
-  fontSize: ".5em",
-  //opacity  : 0,
+  fontSize: ".4em",
   transform: [{
     translateX: "0px"
   }]
@@ -783,7 +782,9 @@ var defaultEntering = [{
   duration: 100,
   //easeFn  : "easeSinIn",
   apply: {
-    left: "-100%"
+    transform: [{
+      translateX: "-400%"
+    }]
   }
 }];
 //export const dragHook  = p => -p;
@@ -793,7 +794,9 @@ var defaultLeaving = [{
   //easeFn  : "easeSinOut",
   //easeFn: "easeSinOut",
   apply: {
-    left: "-100%"
+    transform: [{
+      translateX: "-400%"
+    }]
   }
 }];
 
@@ -829,7 +832,7 @@ var visibleItems = 3;
 var defaultInitial = {
   position: "absolute",
   height: "100%",
-  width: "33%",
+  width: "33.3333333%",
   top: "0%",
   left: "100%",
   zIndex: 50,
@@ -851,14 +854,18 @@ var defaultEntering = [{
   duration: 100,
   //easeFn  : "easeSinIn",
   apply: {
-    left: "-67%"
+    transform: [{
+      translateX: "-200%"
+    }]
   }
 }];
 var defaultLeaving = [{
   from: 0,
   duration: 100,
   apply: {
-    left: "-67%"
+    transform: [{
+      translateX: "-200%"
+    }]
   }
 }];
 

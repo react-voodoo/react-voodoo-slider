@@ -13,13 +13,12 @@ export const visibleItems = 5;
 
 export const defaultInitial  = {
 	position: "absolute",
-	height  : "100%",
+	height  : "70%",
 	width   : "25%",
-	top     : "0%",
+	top     : "15%",
 	left    : "100%",
 	zIndex  : 50,
-	fontSize : ".5em",
-	//opacity  : 0,
+	fontSize : ".4em",
 	transform: [
 		{
 			translateX: "0px",
@@ -44,7 +43,10 @@ export const defaultEntering = [
 		duration: 100,
 		//easeFn  : "easeSinIn",
 		apply: {
-			left: "-100%"
+			transform: [
+				{
+					translateX: "-400%",
+				}]
 		}
 	},
 ];
@@ -56,7 +58,10 @@ export const defaultLeaving  = [
 		//easeFn  : "easeSinOut",
 		//easeFn: "easeSinOut",
 		apply: {
-			left: "-100%"
+			transform: [
+				{
+					translateX: "-400%",
+				}]
 		}
 	}]
 ;

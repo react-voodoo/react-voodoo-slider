@@ -14,7 +14,7 @@ export const visibleItems = 3;
 export const defaultInitial  = {
 	position: "absolute",
 	height  : "100%",
-	width   : "33%",
+	width   : "33.3333333%",
 	top     : "0%",
 	left    : "100%",
 	zIndex  : 50,
@@ -40,7 +40,10 @@ export const defaultEntering = [
 		duration: 100,
 		//easeFn  : "easeSinIn",
 		apply: {
-			left: "-67%"
+			transform: [
+				{
+					translateX: "-200%",
+				}]
 		}
 	},
 ];
@@ -49,7 +52,10 @@ export const defaultLeaving  = [
 		from    : 0,
 		duration: 100,
 		apply: {
-			left: "-67%"
+			transform: [
+				{
+					translateX: "-200%",
+				}]
 		}
 	}]
 ;
