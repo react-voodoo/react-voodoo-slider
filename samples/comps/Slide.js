@@ -27,9 +27,9 @@ export default ( {
 							right    : "30%",
 							color    : "white",
 							fontSize : "4em",
-							opacity  : 0,
+							//opacity  : 0,
 							transform: [{
-								translateY: "-5em"
+								//translateY: "-5em"
 							}]
 						},
 						axes : {
@@ -38,10 +38,10 @@ export default ( {
 									from    : 0,
 									duration: 100,
 									apply   : {
-										opacity  : 1,
+										//opacity  : 1,
 										transform: [
 											{
-												translateY: "5em"
+												//translateY: "5em"
 											}
 										]
 									}
@@ -52,10 +52,10 @@ export default ( {
 									from    : 0,
 									duration: 100,
 									apply   : {
-										opacity  : -1,
+										//opacity  : -1,
 										transform: [
 											{
-												translateX: "5em"
+												//translateX: "5em"
 											}
 										]
 									}

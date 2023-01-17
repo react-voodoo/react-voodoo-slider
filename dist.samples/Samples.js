@@ -635,9 +635,9 @@ var _excluded = ["children", "record", "voodooRef"];
             right: "30%",
             color: "white",
             fontSize: "4em",
-            opacity: 0,
+            //opacity  : 0,
             transform: [{
-              translateY: "-5em"
+              //translateY: "-5em"
             }]
           },
           axes: {
@@ -645,9 +645,9 @@ var _excluded = ["children", "record", "voodooRef"];
               from: 0,
               duration: 100,
               apply: {
-                opacity: 1,
+                //opacity  : 1,
                 transform: [{
-                  translateY: "5em"
+                  //translateY: "5em"
                 }]
               }
             }],
@@ -655,9 +655,9 @@ var _excluded = ["children", "record", "voodooRef"];
               from: 0,
               duration: 100,
               apply: {
-                opacity: -1,
+                //opacity  : -1,
                 transform: [{
-                  translateX: "5em"
+                  //translateX: "5em"
                 }]
               }
             }]
@@ -894,7 +894,7 @@ __webpack_require__.r(__webpack_exports__);
  */
 
 var stepAngle = "2.05deg";
-var visibleItems = 7;
+var visibleItems = 5;
 var carouselStyle = {
   position: "relative",
   overflow: "hidden",
@@ -911,6 +911,9 @@ var defaultInitial = {
   zIndex: 50,
   opacity: 0,
   transform: [{
+    translateX: "-50%",
+    translateY: "-50%"
+  }, {
     perspective: "1250px",
     translateY: "-30000px",
     rotate: "-" + stepAngle
@@ -918,9 +921,6 @@ var defaultInitial = {
     translateY: "30000px",
     translateZ: "-500px",
     rotateY: "15deg"
-  }, {
-    translateX: "-50%",
-    translateY: "-50%"
   }]
 };
 var scrollAxis = [{
@@ -928,9 +928,9 @@ var scrollAxis = [{
   duration: 100,
   //easeFn  : "easeSinIn",
   apply: {
-    transform: {
+    transform: [, {
       rotate: "-" + stepAngle
-    },
+    }],
     zIndex: 150
   }
 }];
@@ -939,9 +939,9 @@ var defaultEntering = [{
   duration: 100,
   easeFn: "easeSinIn",
   apply: {
-    transform: {
+    transform: [, {
       rotate: stepAngle
-    },
+    }],
     zIndex: 150
   }
 }, {
@@ -954,7 +954,7 @@ var defaultEntering = [{
   from: 55,
   duration: 45,
   apply: {
-    transform: [{}, {
+    transform: [, {}, {
       rotateY: "-15deg",
       translateZ: "500px"
       //rotateX: "-90deg",
@@ -969,7 +969,7 @@ var defaultLeaving = [{
   from: 0,
   duration: 45,
   apply: {
-    transform: [{}, {
+    transform: [, {}, {
       rotateY: "-15deg",
       translateZ: "-500px"
     }]
@@ -987,9 +987,9 @@ var defaultLeaving = [{
   easeFn: "easeSinOut",
   apply: {
     zIndex: -150,
-    transform: {
+    transform: [, {
       rotate: stepAngle
-    }
+    }]
   }
 }];
 

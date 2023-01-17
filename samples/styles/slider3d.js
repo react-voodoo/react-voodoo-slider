@@ -4,7 +4,7 @@
  */
 
 let stepAngle             = "2.05deg";
-export const visibleItems = 7;
+export const visibleItems = 5;
 
 export const carouselStyle   = {
 	position  : "relative",
@@ -22,7 +22,11 @@ export const defaultInitial  = {
 	zIndex   : 50,
 	opacity  : 0,
 	transform: [
+		
 		{
+			translateX: "-50%",
+			translateY: "-50%"
+		},{
 			perspective: "1250px",
 			translateY : "-30000px",
 			rotate     : "-" + stepAngle
@@ -31,10 +35,6 @@ export const defaultInitial  = {
 			translateY: "30000px",
 			translateZ: "-500px",
 			rotateY   : "15deg",
-		},
-		{
-			translateX: "-50%",
-			translateY: "-50%"
 		}]
 };
 export const scrollAxis      = [
@@ -43,9 +43,9 @@ export const scrollAxis      = [
 		duration: 100,
 		//easeFn  : "easeSinIn",
 		apply: {
-			transform: {
+			transform: [,{
 				rotate: "-" + stepAngle,
-			},
+			}],
 			zIndex   : 150,
 		}
 	},
@@ -56,9 +56,9 @@ export const defaultEntering = [
 		duration: 100,
 		easeFn  : "easeSinIn",
 		apply   : {
-			transform: {
+			transform: [,{
 				rotate: stepAngle,
-			},
+			}],
 			zIndex   : 150,
 		}
 	},
@@ -72,7 +72,7 @@ export const defaultEntering = [
 		from    : 55,
 		duration: 45,
 		apply   : {
-			transform: [{}, {
+			transform: [,{}, {
 				rotateY   : "-15deg",
 				translateZ: "500px",
 				//rotateX: "-90deg",
@@ -86,7 +86,7 @@ export const defaultLeaving  = [
 		from    : 0,
 		duration: 45,
 		apply   : {
-			transform: [{}, {
+			transform: [,{}, {
 				rotateY   : "-15deg",
 				translateZ: "-500px",
 			}]
@@ -106,9 +106,9 @@ export const defaultLeaving  = [
 		apply : {
 			zIndex: -150,
 			
-			transform: {
+			transform: [,{
 				rotate: stepAngle,
-			}
+			}]
 		}
 	}]
 ;
