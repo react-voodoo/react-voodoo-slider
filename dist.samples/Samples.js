@@ -566,7 +566,8 @@ module.exports = {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "ThreeByThree": () => (/* binding */ ThreeByThree),
+/* harmony export */   "FourItems": () => (/* binding */ FourItems),
+/* harmony export */   "ThreeItems": () => (/* binding */ ThreeItems),
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__),
 /* harmony export */   "slider3d": () => (/* binding */ slider3d)
 /* harmony export */ });
@@ -576,10 +577,13 @@ var req,
   walknSetExport = (__webpack_require__(/*! Samples/.___layerPackIndexUtils */ "./samples/.___layerPackIndexUtils.js").walknSetExport);
 var _Samples_styles_slider3d_js = __webpack_require__(/*! Samples/styles/slider3d.js */ "./samples/styles/slider3d.js");
 walknSetExport(_exports, "slider3d", _Samples_styles_slider3d_js);
-var _Samples_styles_ThreeByThree_js = __webpack_require__(/*! Samples/styles/ThreeByThree.js */ "./samples/styles/ThreeByThree.js");
-walknSetExport(_exports, "ThreeByThree", _Samples_styles_ThreeByThree_js);
+var _Samples_styles_FourItems_js = __webpack_require__(/*! Samples/styles/FourItems.js */ "./samples/styles/FourItems.js");
+walknSetExport(_exports, "FourItems", _Samples_styles_FourItems_js);
+var _Samples_styles_ThreeItems_js = __webpack_require__(/*! Samples/styles/ThreeItems.js */ "./samples/styles/ThreeItems.js");
+walknSetExport(_exports, "ThreeItems", _Samples_styles_ThreeItems_js);
+var FourItems = _exports.FourItems;
 var slider3d = _exports.slider3d;
-var ThreeByThree = _exports.ThreeByThree;
+var ThreeItems = _exports.ThreeItems;
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (_exports);
 
 /***/ }),
@@ -723,10 +727,10 @@ var _excluded = ["children", "record", "voodooRef"];
 
 /***/ }),
 
-/***/ "./samples/styles/ThreeByThree.js":
-/*!****************************************!*\
-  !*** ./samples/styles/ThreeByThree.js ***!
-  \****************************************/
+/***/ "./samples/styles/FourItems.js":
+/*!*************************************!*\
+  !*** ./samples/styles/FourItems.js ***!
+  \*************************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -749,12 +753,11 @@ __webpack_require__.r(__webpack_exports__);
  * If not, see <http://creativecommons.org/licenses/by-nd/4.0/> or <http://www.gnu.org/licenses/agpl-3.0.txt>.
  */
 
-var stepAngle = "2.05deg";
-var visibleItems = 3;
+var visibleItems = 5;
 var defaultInitial = {
   position: "absolute",
   height: "100%",
-  width: "33%",
+  width: "25%",
   top: "0%",
   left: "100%",
   zIndex: 50,
@@ -780,7 +783,7 @@ var defaultEntering = [{
   duration: 100,
   //easeFn  : "easeSinIn",
   apply: {
-    left: "-67%"
+    left: "-100%"
   }
 }];
 //export const dragHook  = p => -p;
@@ -789,6 +792,71 @@ var defaultLeaving = [{
   duration: 100,
   //easeFn  : "easeSinOut",
   //easeFn: "easeSinOut",
+  apply: {
+    left: "-100%"
+  }
+}];
+
+/***/ }),
+
+/***/ "./samples/styles/ThreeItems.js":
+/*!**************************************!*\
+  !*** ./samples/styles/ThreeItems.js ***!
+  \**************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "defaultEntering": () => (/* binding */ defaultEntering),
+/* harmony export */   "defaultInitial": () => (/* binding */ defaultInitial),
+/* harmony export */   "defaultLeaving": () => (/* binding */ defaultLeaving),
+/* harmony export */   "scrollAxis": () => (/* binding */ scrollAxis),
+/* harmony export */   "visibleItems": () => (/* binding */ visibleItems)
+/* harmony export */ });
+/*
+ * Copyright (c) 2022-2023 Braun Nathanael
+ *
+ * This project is dual licensed under one of the following licenses:
+ * - Creative Commons Attribution-NoDerivatives 4.0 International License.
+ * - GNU AFFERO GENERAL PUBLIC LICENSE Version 3
+ *
+ * You should have received a copy of theses licenses along with this work.
+ * If not, see <http://creativecommons.org/licenses/by-nd/4.0/> or <http://www.gnu.org/licenses/agpl-3.0.txt>.
+ */
+
+var visibleItems = 3;
+var defaultInitial = {
+  position: "absolute",
+  height: "100%",
+  width: "33%",
+  top: "0%",
+  left: "100%",
+  zIndex: 50,
+  fontSize: ".5em",
+  transform: [{
+    translateX: "0px"
+  }]
+};
+var scrollAxis = [{
+  from: 0,
+  duration: 100,
+  //easeFn  : "easeSinIn",
+  apply: {
+    zIndex: 150
+  }
+}];
+var defaultEntering = [{
+  from: 0,
+  duration: 100,
+  //easeFn  : "easeSinIn",
+  apply: {
+    left: "-67%"
+  }
+}];
+var defaultLeaving = [{
+  from: 0,
+  duration: 100,
   apply: {
     left: "-67%"
   }
@@ -940,7 +1008,7 @@ __webpack_require__.r(__webpack_exports__);
 
 var ___CSS_LOADER_EXPORT___ = _node_modules_lpack_react_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default()((_node_modules_lpack_react_node_modules_css_loader_dist_runtime_cssWithMappingToString_js__WEBPACK_IMPORTED_MODULE_0___default()));
 // Module
-___CSS_LOADER_EXPORT___.push([module.id, "/*!\n *\n * Copyright (C) 2019 Nathanael Braun\n *\n * This program is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License as published by\n * the Free Software Foundation, either version 3 of the License, or\n * (at your option) any later version.\n *\n * This program is distributed in the hope that it will be useful,\n * but WITHOUT ANY WARRANTY; without even the implied warranty of\n * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n * GNU Affero General Public License for more details.\n *\n * You should have received a copy of the GNU Affero General Public License\n * along with this program.  If not, see <http://www.gnu.org/licenses/>.\n */\nbody, html, #app, .app {\n  width: 100%;\n  height: 100%;\n  margin: 0;\n  position: fixed;\n  overflow: hidden;\n}\n\n.Slide {\n  padding: 0.25em;\n  width: 100%;\n  height: 100%;\n  position: relative;\n  text-align: left;\n  background: rgb(168, 168, 168);\n  -webkit-user-select: none;\n     -moz-user-select: none;\n      -ms-user-select: none;\n          user-select: none;\n}\n.Slide > .content {\n  position: absolute;\n  top: 50%;\n  left: 50%;\n  -webkit-transform: translate(-50%, -50%);\n      -ms-transform: translate(-50%, -50%);\n          transform: translate(-50%, -50%);\n  width: 100%;\n  height: 100%;\n  cursor: pointer;\n  overflow: hidden;\n}\n.Slide > .content:before {\n  content: \" \";\n  position: absolute;\n  top: 0;\n  left: 0;\n  bottom: 0;\n  width: 55%;\n  background: rgba(0, 0, 0, 0.48);\n}\n.Slide > .content > .label {\n  overflow: hidden;\n  -o-text-overflow: ellipsis;\n     text-overflow: ellipsis;\n  white-space: nowrap;\n  font-weight: bold;\n}\n.Slide > .content .description {\n  position: absolute;\n  bottom: calc(10% + 30px);\n  left: 10vh;\n  min-width: 30%;\n  min-height: 5em;\n  background: rgba(255, 255, 255, 0.4);\n  border-radius: 10px;\n  padding: 5px;\n  color: black;\n}\n.Slide > .content img {\n  position: absolute;\n  top: 50%;\n  left: 50%;\n  -webkit-transform: translate(-50%, -50%);\n      -ms-transform: translate(-50%, -50%);\n          transform: translate(-50%, -50%);\n  width: 100%;\n  pointer-events: none;\n  z-index: -1;\n}\n.Slide > .content img.ghost {\n  height: auto;\n  width: 140%;\n  min-height: 100%;\n  -webkit-filter: blur(20px);\n          filter: blur(20px);\n}\n\n.sample {\n  position: absolute;\n  top: 50px;\n  left: 20px;\n  width: 1200px;\n  height: 300px;\n  display: -webkit-box;\n  display: -ms-flexbox;\n  display: flex;\n}\n.sample .btnPrev, .sample .btnNext {\n  font-weight: bolder;\n  font-size: 10em;\n  -webkit-box-flex: 1;\n      -ms-flex: 1;\n          flex: 1;\n  font-family: Calibri;\n  -webkit-box-align: center;\n      -ms-flex-align: center;\n          align-items: center;\n  -webkit-box-pack: center;\n      -ms-flex-pack: center;\n          justify-content: center;\n  display: -webkit-box;\n  display: -ms-flexbox;\n  display: flex;\n  cursor: pointer;\n}\n.sample .slideInfos {\n  position: absolute;\n  top: 50%;\n  left: 50%;\n  -webkit-transform: translate(-50%, -50%);\n      -ms-transform: translate(-50%, -50%);\n          transform: translate(-50%, -50%);\n  top: 110%;\n  font-weight: bolder;\n  font-size: 4em;\n}\n.sample .slideStyles {\n  position: absolute;\n  left: 0;\n  bottom: 100%;\n  right: 0;\n  font-weight: bolder;\n  font-size: 1.5em;\n  color: #12191a;\n  text-align: center;\n}\n.sample .slideStyles .regenBtn {\n  float: right;\n}\n.sample .slideStyles > * {\n  display: inline-block;\n  padding: 0.25em;\n  cursor: pointer;\n  text-transform: capitalize;\n}\n.sample .slideStyles > *:hover {\n  text-decoration: underline;\n}\n.sample .slideStyles > *.selected {\n  text-decoration: underline;\n  color: black;\n}\n.sample .Carousel {\n  -webkit-box-flex: 10;\n      -ms-flex: 10;\n          flex: 10;\n  height: 100%;\n  text-align: center;\n  position: relative;\n  overflow: hidden;\n}\n.sample .Carousel > .items {\n  width: 100%;\n  height: 100%;\n}\n.sample .Carousel > .items > .slide {\n  width: 0;\n  height: 0;\n}", "",{"version":3,"sources":["webpack://./samples/samples.scss","webpack://./samples/comps/Slide.scss"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;EAAA;AA4CA;EACE,WAAA;EACA,YAAA;EACA,SAAA;EACA,eAAA;EACA,gBAAA;AA1BF;;ACvBA;EAEE,eAAA;EACA,WAAA;EACA,YAAA;EACA,kBAAA;EACA,gBAAA;EACA,8BAAA;EACA,yBAAA;KAAA,sBAAA;MAAA,qBAAA;UAAA,iBAAA;ADyBF;ACvBE;ED2BA,kBAAA;EACA,QAAA;EACA,SAAA;EACA,wCAAA;MAAA,oCAAA;UAAA,gCAAA;EC5BE,WAAA;EACA,YAAA;EACA,eAAA;EACA,gBAAA;AD4BJ;AC1BI;EACE,YAAA;EACA,kBAAA;EACA,MAAA;EACA,OAAA;EACA,SAAA;EACA,UAAA;EACA,+BAAA;AD4BN;ACzBI;EACE,gBAAA;EACA,0BAAA;KAAA,uBAAA;EACA,mBAAA;EACA,iBAAA;AD2BN;ACxBI;EACE,kBAAA;EACA,wBAAA;EACA,UAAA;EACA,cAAA;EACA,eAAA;EACA,oCAAA;EACA,mBAAA;EACA,YAAA;EACA,YAAA;AD0BN;ACvBI;EDTF,kBAAA;EACA,QAAA;EACA,SAAA;EACA,wCAAA;MAAA,oCAAA;UAAA,gCAAA;ECQI,WAAA;EACA,oBAAA;EACA,WAAA;AD4BN;AC1BM;EACE,YAAA;EACA,WAAA;EACA,gBAAA;EAEA,0BAAA;UAAA,kBAAA;AD2BR;;AA7BA;EACE,kBAAA;EACA,SAAA;EACA,UAAA;EACA,aAAA;EACA,aAAA;EACA,oBAAA;EAAA,oBAAA;EAAA,aAAA;AAgCF;AA9BE;EACE,mBAAA;EACA,eAAA;EACA,mBAAA;MAAA,WAAA;UAAA,OAAA;EACA,oBAAA;EACA,yBAAA;MAAA,sBAAA;UAAA,mBAAA;EACA,wBAAA;MAAA,qBAAA;UAAA,uBAAA;EACA,oBAAA;EAAA,oBAAA;EAAA,aAAA;EACA,eAAA;AAgCJ;AA7BE;EArCA,kBAAA;EACA,QAAA;EACA,SAAA;EACA,wCAAA;MAAA,oCAAA;UAAA,gCAAA;EAoCE,SAAA;EACA,mBAAA;EACA,cAAA;AAkCJ;AA/BE;EACE,kBAAA;EACA,OAAA;EACA,YAAA;EACA,QAAA;EACA,mBAAA;EACA,gBAAA;EACA,cAAA;EACA,kBAAA;AAiCJ;AAhCI;EACE,YAAA;AAkCN;AAhCI;EACE,qBAAA;EACA,eAAA;EACA,eAAA;EACA,0BAAA;AAkCN;AAhCI;EACE,0BAAA;AAkCN;AA/BI;EACE,0BAAA;EACA,YAAA;AAiCN;AA7BE;EACE,oBAAA;MAAA,YAAA;UAAA,QAAA;EACA,YAAA;EACA,kBAAA;EACA,kBAAA;EACA,gBAAA;AA+BJ;AA7BI;EACE,WAAA;EACA,YAAA;AA+BN;AA7BM;EACE,QAAA;EACA,SAAA;AA+BR","sourcesContent":["/*!\n *\n * Copyright (C) 2019 Nathanael Braun\n *\n * This program is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License as published by\n * the Free Software Foundation, either version 3 of the License, or\n * (at your option) any later version.\n *\n * This program is distributed in the hope that it will be useful,\n * but WITHOUT ANY WARRANTY; without even the implied warranty of\n * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n * GNU Affero General Public License for more details.\n *\n * You should have received a copy of the GNU Affero General Public License\n * along with this program.  If not, see <http://www.gnu.org/licenses/>.\n */\n@mixin use_hvCenteredContent() {\n\n  &:before {\n    content: ' ';\n    display: inline-block;\n    height: 100%;\n    width: 1px;\n    margin-right: -1px;\n    vertical-align: middle;\n    overflow: hidden;\n  }\n  text-align: center;\n  > * {\n    text-align: left;\n    vertical-align: middle;\n    display: inline-block;\n  }\n}\n\n@mixin use_hvCenteredAbs() {\n  position: absolute;\n  top: 50%;\n  left: 50%;\n  transform: translate(-50%, -50%);\n}\n\n\nbody, html, #app, .app {\n  width: 100%;\n  height: 100%;\n  margin: 0;\n  position: fixed;\n  overflow: hidden;\n  //overflow: auto !important;\n}\n\n@import \"./*/*.scss\";\n\n.sample {\n  position: absolute;\n  top: 50px;\n  left: 20px;\n  width: 1200px;\n  height: 300px;\n  display: flex;\n\n  .btnPrev, .btnNext {\n    font-weight: bolder;\n    font-size: 10em;\n    flex: 1;\n    font-family: Calibri;\n    align-items: center;\n    justify-content: center;\n    display: flex;\n    cursor: pointer;\n  }\n\n  .slideInfos {\n    @include use_hvCenteredAbs();\n    top: 110%;\n    font-weight: bolder;\n    font-size: 4em;\n  }\n\n  .slideStyles {\n    position: absolute;\n    left: 0;\n    bottom: 100%;\n    right: 0;\n    font-weight: bolder;\n    font-size: 1.5em;\n    color: #12191a;\n    text-align: center;\n    .regenBtn{\n      float: right;\n    }\n    >*{\n      display: inline-block;\n      padding: .25em;\n      cursor: pointer;\n      text-transform: capitalize;\n    }\n    >*:hover {\n      text-decoration: underline;\n    }\n\n    >*.selected {\n      text-decoration: underline;\n      color: black;\n    }\n  }\n\n  .Carousel {\n    flex: 10;\n    height: 100%;\n    text-align: center;\n    position: relative;\n    overflow: hidden;\n\n    > .items {\n      width: 100%;\n      height: 100%;\n\n      > .slide {\n        width: 0;\n        height: 0;\n      }\n    }\n  }\n}\n",".Slide {\r\n  //display: inline-flex;\r\n  padding: .25em;\r\n  width: 100%;\r\n  height: 100%;\r\n  position: relative;\r\n  text-align: left;\r\n  background: rgb(168, 168, 168);\r\n  user-select: none;\r\n\r\n  > .content {\r\n    @include use_hvCenteredAbs();\r\n    width: 100%;\r\n    height: 100%;\r\n    cursor: pointer;\r\n    overflow: hidden;\r\n\r\n    &:before {\r\n      content: ' ';\r\n      position: absolute;\r\n      top: 0;\r\n      left: 0;\r\n      bottom: 0;\r\n      width: 55%;\r\n      background: rgba(0, 0, 0, 0.48);\r\n    }\r\n\r\n    > .label {\r\n      overflow: hidden;\r\n      text-overflow: ellipsis;\r\n      white-space: nowrap;\r\n      font-weight: bold;\r\n    }\r\n\r\n    .description {\r\n      position: absolute;\r\n      bottom: calc(10% + 30px);\r\n      left: 10vh;\r\n      min-width: 30%;\r\n      min-height: 5em;\r\n      background: rgba(255, 255, 255, 0.4);\r\n      border-radius: 10px;\r\n      padding: 5px;\r\n      color: black;\r\n    }\r\n\r\n    img {\r\n      @include use_hvCenteredAbs();\r\n      width: 100%;\r\n      pointer-events: none;\r\n      z-index: -1;\r\n\r\n      &.ghost {\r\n        height: auto;\r\n        width: 140%;\r\n        min-height: 100%;\r\n\r\n        filter: blur(20px);\r\n      }\r\n    }\r\n  }\r\n}\r\n"],"sourceRoot":""}]);
+___CSS_LOADER_EXPORT___.push([module.id, "/*!\n *\n * Copyright (C) 2019 Nathanael Braun\n *\n * This program is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License as published by\n * the Free Software Foundation, either version 3 of the License, or\n * (at your option) any later version.\n *\n * This program is distributed in the hope that it will be useful,\n * but WITHOUT ANY WARRANTY; without even the implied warranty of\n * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n * GNU Affero General Public License for more details.\n *\n * You should have received a copy of the GNU Affero General Public License\n * along with this program.  If not, see <http://www.gnu.org/licenses/>.\n */\nbody, html, #app, .app {\n  width: 100%;\n  height: 100%;\n  margin: 0;\n  position: fixed;\n  overflow: hidden;\n}\n\n.Slide {\n  padding: 0.25em;\n  width: 100%;\n  height: 100%;\n  position: relative;\n  text-align: left;\n  background: rgb(168, 168, 168);\n  -webkit-user-select: none;\n     -moz-user-select: none;\n      -ms-user-select: none;\n          user-select: none;\n}\n.Slide > .content {\n  position: absolute;\n  top: 50%;\n  left: 50%;\n  -webkit-transform: translate(-50%, -50%);\n      -ms-transform: translate(-50%, -50%);\n          transform: translate(-50%, -50%);\n  width: 100%;\n  height: 100%;\n  cursor: pointer;\n  overflow: hidden;\n}\n.Slide > .content:before {\n  content: \" \";\n  position: absolute;\n  top: 0;\n  left: 0;\n  bottom: 0;\n  width: 55%;\n  background: rgba(0, 0, 0, 0.48);\n}\n.Slide > .content > .label {\n  overflow: hidden;\n  -o-text-overflow: ellipsis;\n     text-overflow: ellipsis;\n  white-space: nowrap;\n  font-weight: bold;\n}\n.Slide > .content .description {\n  position: absolute;\n  bottom: calc(10% + 30px);\n  left: 10vh;\n  min-width: 30%;\n  min-height: 5em;\n  background: rgba(255, 255, 255, 0.4);\n  border-radius: 10px;\n  padding: 5px;\n  color: black;\n}\n.Slide > .content img {\n  position: absolute;\n  top: 50%;\n  left: 50%;\n  -webkit-transform: translate(-50%, -50%);\n      -ms-transform: translate(-50%, -50%);\n          transform: translate(-50%, -50%);\n  width: 100%;\n  pointer-events: none;\n  z-index: -1;\n}\n.Slide > .content img.ghost {\n  height: auto;\n  width: 140%;\n  min-height: 100%;\n  -webkit-filter: blur(5px);\n          filter: blur(5px);\n}\n\n.sample {\n  position: absolute;\n  top: 50px;\n  left: 20px;\n  width: 1200px;\n  height: 300px;\n  display: -webkit-box;\n  display: -ms-flexbox;\n  display: flex;\n}\n.sample .btnPrev, .sample .btnNext {\n  font-weight: bolder;\n  font-size: 10em;\n  -webkit-box-flex: 1;\n      -ms-flex: 1;\n          flex: 1;\n  font-family: Calibri;\n  -webkit-box-align: center;\n      -ms-flex-align: center;\n          align-items: center;\n  -webkit-box-pack: center;\n      -ms-flex-pack: center;\n          justify-content: center;\n  display: -webkit-box;\n  display: -ms-flexbox;\n  display: flex;\n  cursor: pointer;\n}\n.sample .slideInfos {\n  position: absolute;\n  top: 50%;\n  left: 50%;\n  -webkit-transform: translate(-50%, -50%);\n      -ms-transform: translate(-50%, -50%);\n          transform: translate(-50%, -50%);\n  top: 110%;\n  font-weight: bolder;\n  font-size: 4em;\n}\n.sample .slideStyles {\n  position: absolute;\n  left: 0;\n  bottom: 100%;\n  right: 0;\n  font-weight: bolder;\n  font-size: 1.5em;\n  color: #12191a;\n  text-align: center;\n}\n.sample .slideStyles .regenBtn {\n  float: right;\n}\n.sample .slideStyles > * {\n  display: inline-block;\n  padding: 0.25em;\n  cursor: pointer;\n  text-transform: capitalize;\n}\n.sample .slideStyles > *:hover {\n  text-decoration: underline;\n}\n.sample .slideStyles > *.selected {\n  text-decoration: underline;\n  color: black;\n}\n.sample .Carousel {\n  -webkit-box-flex: 10;\n      -ms-flex: 10;\n          flex: 10;\n  height: 100%;\n  text-align: center;\n  position: relative;\n  overflow: hidden;\n}\n.sample .Carousel > .items {\n  width: 100%;\n  height: 100%;\n}\n.sample .Carousel > .items > .slide {\n  width: 0;\n  height: 0;\n}", "",{"version":3,"sources":["webpack://./samples/samples.scss","webpack://./samples/comps/Slide.scss"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;EAAA;AA4CA;EACE,WAAA;EACA,YAAA;EACA,SAAA;EACA,eAAA;EACA,gBAAA;AA1BF;;ACvBA;EAEE,eAAA;EACA,WAAA;EACA,YAAA;EACA,kBAAA;EACA,gBAAA;EACA,8BAAA;EACA,yBAAA;KAAA,sBAAA;MAAA,qBAAA;UAAA,iBAAA;ADyBF;ACvBE;ED2BA,kBAAA;EACA,QAAA;EACA,SAAA;EACA,wCAAA;MAAA,oCAAA;UAAA,gCAAA;EC5BE,WAAA;EACA,YAAA;EACA,eAAA;EACA,gBAAA;AD4BJ;AC1BI;EACE,YAAA;EACA,kBAAA;EACA,MAAA;EACA,OAAA;EACA,SAAA;EACA,UAAA;EACA,+BAAA;AD4BN;ACzBI;EACE,gBAAA;EACA,0BAAA;KAAA,uBAAA;EACA,mBAAA;EACA,iBAAA;AD2BN;ACxBI;EACE,kBAAA;EACA,wBAAA;EACA,UAAA;EACA,cAAA;EACA,eAAA;EACA,oCAAA;EACA,mBAAA;EACA,YAAA;EACA,YAAA;AD0BN;ACvBI;EDTF,kBAAA;EACA,QAAA;EACA,SAAA;EACA,wCAAA;MAAA,oCAAA;UAAA,gCAAA;ECQI,WAAA;EACA,oBAAA;EACA,WAAA;AD4BN;AC1BM;EACE,YAAA;EACA,WAAA;EACA,gBAAA;EAEA,yBAAA;UAAA,iBAAA;AD2BR;;AA7BA;EACE,kBAAA;EACA,SAAA;EACA,UAAA;EACA,aAAA;EACA,aAAA;EACA,oBAAA;EAAA,oBAAA;EAAA,aAAA;AAgCF;AA9BE;EACE,mBAAA;EACA,eAAA;EACA,mBAAA;MAAA,WAAA;UAAA,OAAA;EACA,oBAAA;EACA,yBAAA;MAAA,sBAAA;UAAA,mBAAA;EACA,wBAAA;MAAA,qBAAA;UAAA,uBAAA;EACA,oBAAA;EAAA,oBAAA;EAAA,aAAA;EACA,eAAA;AAgCJ;AA7BE;EArCA,kBAAA;EACA,QAAA;EACA,SAAA;EACA,wCAAA;MAAA,oCAAA;UAAA,gCAAA;EAoCE,SAAA;EACA,mBAAA;EACA,cAAA;AAkCJ;AA/BE;EACE,kBAAA;EACA,OAAA;EACA,YAAA;EACA,QAAA;EACA,mBAAA;EACA,gBAAA;EACA,cAAA;EACA,kBAAA;AAiCJ;AAhCI;EACE,YAAA;AAkCN;AAhCI;EACE,qBAAA;EACA,eAAA;EACA,eAAA;EACA,0BAAA;AAkCN;AAhCI;EACE,0BAAA;AAkCN;AA/BI;EACE,0BAAA;EACA,YAAA;AAiCN;AA7BE;EACE,oBAAA;MAAA,YAAA;UAAA,QAAA;EACA,YAAA;EACA,kBAAA;EACA,kBAAA;EACA,gBAAA;AA+BJ;AA7BI;EACE,WAAA;EACA,YAAA;AA+BN;AA7BM;EACE,QAAA;EACA,SAAA;AA+BR","sourcesContent":["/*!\n *\n * Copyright (C) 2019 Nathanael Braun\n *\n * This program is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License as published by\n * the Free Software Foundation, either version 3 of the License, or\n * (at your option) any later version.\n *\n * This program is distributed in the hope that it will be useful,\n * but WITHOUT ANY WARRANTY; without even the implied warranty of\n * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n * GNU Affero General Public License for more details.\n *\n * You should have received a copy of the GNU Affero General Public License\n * along with this program.  If not, see <http://www.gnu.org/licenses/>.\n */\n@mixin use_hvCenteredContent() {\n\n  &:before {\n    content: ' ';\n    display: inline-block;\n    height: 100%;\n    width: 1px;\n    margin-right: -1px;\n    vertical-align: middle;\n    overflow: hidden;\n  }\n  text-align: center;\n  > * {\n    text-align: left;\n    vertical-align: middle;\n    display: inline-block;\n  }\n}\n\n@mixin use_hvCenteredAbs() {\n  position: absolute;\n  top: 50%;\n  left: 50%;\n  transform: translate(-50%, -50%);\n}\n\n\nbody, html, #app, .app {\n  width: 100%;\n  height: 100%;\n  margin: 0;\n  position: fixed;\n  overflow: hidden;\n  //overflow: auto !important;\n}\n\n@import \"./*/*.scss\";\n\n.sample {\n  position: absolute;\n  top: 50px;\n  left: 20px;\n  width: 1200px;\n  height: 300px;\n  display: flex;\n\n  .btnPrev, .btnNext {\n    font-weight: bolder;\n    font-size: 10em;\n    flex: 1;\n    font-family: Calibri;\n    align-items: center;\n    justify-content: center;\n    display: flex;\n    cursor: pointer;\n  }\n\n  .slideInfos {\n    @include use_hvCenteredAbs();\n    top: 110%;\n    font-weight: bolder;\n    font-size: 4em;\n  }\n\n  .slideStyles {\n    position: absolute;\n    left: 0;\n    bottom: 100%;\n    right: 0;\n    font-weight: bolder;\n    font-size: 1.5em;\n    color: #12191a;\n    text-align: center;\n    .regenBtn{\n      float: right;\n    }\n    >*{\n      display: inline-block;\n      padding: .25em;\n      cursor: pointer;\n      text-transform: capitalize;\n    }\n    >*:hover {\n      text-decoration: underline;\n    }\n\n    >*.selected {\n      text-decoration: underline;\n      color: black;\n    }\n  }\n\n  .Carousel {\n    flex: 10;\n    height: 100%;\n    text-align: center;\n    position: relative;\n    overflow: hidden;\n\n    > .items {\n      width: 100%;\n      height: 100%;\n\n      > .slide {\n        width: 0;\n        height: 0;\n      }\n    }\n  }\n}\n",".Slide {\r\n  //display: inline-flex;\r\n  padding: .25em;\r\n  width: 100%;\r\n  height: 100%;\r\n  position: relative;\r\n  text-align: left;\r\n  background: rgb(168, 168, 168);\r\n  user-select: none;\r\n\r\n  > .content {\r\n    @include use_hvCenteredAbs();\r\n    width: 100%;\r\n    height: 100%;\r\n    cursor: pointer;\r\n    overflow: hidden;\r\n\r\n    &:before {\r\n      content: ' ';\r\n      position: absolute;\r\n      top: 0;\r\n      left: 0;\r\n      bottom: 0;\r\n      width: 55%;\r\n      background: rgba(0, 0, 0, 0.48);\r\n    }\r\n\r\n    > .label {\r\n      overflow: hidden;\r\n      text-overflow: ellipsis;\r\n      white-space: nowrap;\r\n      font-weight: bold;\r\n    }\r\n\r\n    .description {\r\n      position: absolute;\r\n      bottom: calc(10% + 30px);\r\n      left: 10vh;\r\n      min-width: 30%;\r\n      min-height: 5em;\r\n      background: rgba(255, 255, 255, 0.4);\r\n      border-radius: 10px;\r\n      padding: 5px;\r\n      color: black;\r\n    }\r\n\r\n    img {\r\n      @include use_hvCenteredAbs();\r\n      width: 100%;\r\n      pointer-events: none;\r\n      z-index: -1;\r\n\r\n      &.ghost {\r\n        height: auto;\r\n        width: 140%;\r\n        min-height: 100%;\r\n\r\n        filter: blur(5px);\r\n      }\r\n    }\r\n  }\r\n}\r\n"],"sourceRoot":""}]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
