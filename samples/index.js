@@ -42,7 +42,7 @@ function generateStubs() {
 			{
 				label          : "Test " + i,
 				summary        : "Test khjjhk kh kjh k\njkkhkjh kh kj",
-				backgroundImage: "https://source.unsplash.com/500x300/?" + stubThemes[~~(i + Math.random() * 100000) % stubThemes.length]
+				backgroundImage: "https://source.unsplash.com/500x400/?" + stubThemes[~~(i + Math.random() * 100000) % stubThemes.length]
 			}
 		)
 	return stubs;
@@ -53,10 +53,10 @@ const App = () => {
 	      [styleId, setStyleId]       = React.useState("default"),
 	      [stubs, setStubs]           = React.useState(generateStubs());
 	return <div className={"sample"}>
-		<div className={"btnPrev"} onClick={e => setSlideIndex(slideIndex - 1 % stubs.length)}>&lt;</div>
 		<Slider
 			key={"mainSlider"}
 			infinite={true}
+			updateItemAxes={true}
 			autoScroll={10 * 1000}
 			index={slideIndex}
 			defaultStyleId={styleId}
@@ -69,7 +69,6 @@ const App = () => {
 				) || <></>
 			}
 		</Slider>
-		<div className={"btnNext"} onClick={e => setSlideIndex((slideIndex + 1) % stubs.length)}>&gt;</div>
 		<div className={"slideInfos"}>{slideIndex} / {stubs.length}</div>
 		<div className={"slideStyles"}>
 			{

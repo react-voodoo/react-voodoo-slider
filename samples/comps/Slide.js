@@ -97,7 +97,7 @@ export default ( {
 			),
 			[]
 		);
-	
+
 	React.useEffect(
 		() => {
 			voodooRef?.(tweener);

@@ -11,6 +11,30 @@
 
 export const visibleItems = 5;
 
+export const carouselStyle   = {
+	position  : "relative",
+	overflow  : "hidden",
+	display   : "flex",
+	userSelect: "none",
+	transform : { translateZ: "0px" }
+};
+export const wrapperStyle    = {
+	position: "relative",
+	flexGrow: "1",
+	overflow: "hidden",
+};
+export const prevBtnStyle    = {
+	position  : "relative",
+	flexGrow  : "0",
+	flexShrink: 0,
+	padding   : "5px"
+};
+export const nextBtnStyle    = {
+	position  : "relative",
+	flexGrow  : "0",
+	flexShrink: 0,
+	padding   : "5px"
+};
 export const defaultInitial  = {
 	position: "absolute",
 	height  : "70%",

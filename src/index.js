@@ -11,14 +11,18 @@ function useTracked( refs ) {
 	return scope;
 }
 
+
 export let customStyles = styles;
 export default ( {
 	                 defaultIndex = 0,
 	                 defaultStyleId = "default",
-	                 defaultInitial = styles[defaultStyleId]?.defaultInitial,
-	                 defaultEntering = styles[defaultStyleId]?.defaultEntering,
-	                 defaultLeaving = styles[defaultStyleId]?.defaultLeaving,
-	                 visibleItems = styles[defaultStyleId]?.visibleItems,
+	                 defaultInitial,
+	                 defaultEntering,
+	                 defaultLeaving,
+	                 visibleItems,
+	                 prevBtnStyle,
+	                 nextBtnStyle,
+	                 wrapperStyle,
 	                 onClick,
 	                 onChange,
 	                 onWillChange,
@@ -30,18 +34,47 @@ export default ( {
 	                 children: _childs,
 	                 index,
 	                 autoScroll,
-	                 overlaps = 1 / ((visibleItems - (visibleItems % 2)) || 1),
+	                 updateItemAxes,
+	                 hookUpdateItemAxes,
+	                 overlaps,
 	                 autoScrollEaseFn = "easeQuadInOut",
 	                 autoScrollEaseDuration = 750,
 	                 style = {},
-	                 _style = { ...styles[defaultStyleId]?.carouselStyle, ...style },
 	                 className = ""
                  } ) => {
 	const
-		[tweener, ViewBox]              = Voodoo.hook(),
+		[tweener, ViewBox]              = Voodoo.hook({}, Voodoo.Node.div),
 		rootRef                         = React.useRef(),
 		allItemRefs                     = React.useRef([]).current,
 		[currentIndex, setCurrentIndex] = React.useState(index !== undefined ? index : defaultIndex),
+		innerStyles                     = React.useMemo(
+			() => {
+				let map      = {
+					carouselStyle  : { ...styles[defaultStyleId]?.carouselStyle, ...style },
+					defaultInitial : defaultInitial || styles[defaultStyleId]?.defaultInitial,
+					defaultEntering: defaultEntering || styles[defaultStyleId]?.defaultEntering,
+					defaultLeaving : defaultLeaving || styles[defaultStyleId]?.defaultLeaving,
+					visibleItems   : visibleItems || styles[defaultStyleId]?.visibleItems,
+					wrapperStyle   : wrapperStyle || styles[defaultStyleId]?.wrapperStyle,
+					prevBtnStyle   : prevBtnStyle || styles[defaultStyleId]?.prevBtnStyle,
+					nextBtnStyle   : nextBtnStyle || styles[defaultStyleId]?.nextBtnStyle,
+					overlaps       : 0,
+				};
+				map.overlaps = overlaps || (1 / ((map.visibleItems - (map.visibleItems % 2)) || 1));
+				return map;
+			},
+			[
+				style,
+				styles[defaultStyleId],
+				defaultInitial,
+				defaultEntering,
+				defaultLeaving,
+				visibleItems,
+				prevBtnStyle,
+				wrapperStyle,
+				overlaps,
+				nextBtnStyle]
+		),
 		state                           = React.useMemo(
 			() => {
 				let
@@ -49,16 +82,16 @@ export default ( {
 					                      ?
 					                      [...items]
 					                      : Array.isArray(_childs) ? _childs : [],
-					nbGhosts            = infinite ? Math.max(~~(visibleItems / children.length), 1) : 0,
+					nbGhosts            = infinite ? Math.max(~~(innerStyles.visibleItems / children.length), 1) : 0,
 					allItems            = !infinite
 					                      ? [...children]
 					                      : Array(nbGhosts).fill(1).reduce(( list, i ) => ([...children, ...list, ...children]), [...children]),
 					nbInstantiatedItems = allItems.length,
-					step                = 100 * overlaps,
-					dec                 = infinite ? nbGhosts*(children.length * step) : 0,
+					step                = 100 * innerStyles.overlaps,
+					dec                 = infinite ? nbGhosts * (children.length * step) : 0,
 					scrollAxis          = [
-						...defaultEntering,
-						...Voodoo.tools.offset(defaultLeaving, 100)
+						...innerStyles.defaultEntering,
+						...Voodoo.tools.offset(innerStyles.defaultLeaving, 100)
 					],
 					tweenLines          = allItems.map(( e, i ) => ({
 						slideAxis: Voodoo.tools.offset(
@@ -69,14 +102,19 @@ export default ( {
 				if ( items && renderItem ) {
 					allItems = allItems.map(( elem, i ) => renderItem(elem, i, ref => (allItemRefs[i] = ref)))
 				}
-				else {
+				else if ( updateItemAxes ) {
 					allItems = allItems.map(( elem, i ) => React.cloneElement(elem, {
 						key      : i,
 						voodooRef: ref => (allItemRefs[i] = ref)
 					}))
 				}
+				else {
+					allItems = allItems.map(( elem, i ) => React.cloneElement(elem, {
+						key: i
+					}))
+				}
 				return {
-					overlaps,
+					overlaps  : innerStyles.overlaps,
 					allItems,
 					allItemRefs,
 					nbInstantiatedItems,
@@ -90,13 +128,10 @@ export default ( {
 			[
 				items,
 				renderItem,
-				overlaps,
 				_childs,
 				infinite,
-				defaultInitial,
-				defaultEntering,
-				defaultLeaving,
-				visibleItems
+				innerStyles,
+				updateItemAxes
 			]
 		),
 		locals                          = useTracked(
@@ -105,6 +140,8 @@ export default ( {
 				renderItem,
 				onChange,
 				onWillChange,
+				updateItemAxes,
+				hookUpdateItemAxes,
 				autoScrollEaseFn,
 				autoScrollEaseDuration,
 				_childs,
@@ -120,7 +157,7 @@ export default ( {
 				{
 					defaultPosition : 100 + state.dec + locals.currentIndex * state.step,
 					size            : state.nbInstantiatedItems * state.step + 100,
-					scrollableWindow: visibleItems * state.step,
+					scrollableWindow: innerStyles.visibleItems * state.step,
 					bounds          : !infinite && {
 						min: 100,
 						max: state.dec + state.nbInstantiatedItems * state.step,
@@ -153,7 +190,7 @@ export default ( {
 					}
 				}
 			),
-			[state, infinite, visibleItems, maxJump]
+			[state, infinite, innerStyles.visibleItems, maxJump]
 		),
 		api                             = React.useMemo(() => ({
 			updateItemsAxes: ( pos ) => {
@@ -172,18 +209,25 @@ export default ( {
 							itemTweener?.axes?.leaving?.scrollTo(pos * 100, 0);
 						}
 						itemTweener?.axes?.visible?.scrollTo((1 - Math.abs(pos)) * 100, 0);
+						locals.hookUpdateItemAxes?.(itemTweener, cPos - i)
 					}
 				)
 			},
 			goNext() {
-				let { step, windowSize, nbItems } = locals.state,
-				    nextIndex                     = ((nbItems + locals.currentIndex + 1) % (locals.state.nbItems));
+				let { nbItems } = locals.state,
+				    nextIndex   = ((nbItems + locals.currentIndex + 1) % (nbItems));
 				
 				api.goTo(nextIndex)
 			},
+			goPrev() {
+				let { nbItems } = locals.state,
+				    prevIndex   = ((nbItems + locals.currentIndex - 1) % (nbItems));
+				
+				api.goTo(prevIndex)
+			},
 			goTo( targetIndex ) {
-				let { step, windowSize, nbItems } = locals.state,
-				    nextIndex                     = ((nbItems + targetIndex) % (nbItems));
+				let { nbItems } = locals.state,
+				    nextIndex   = ((nbItems + targetIndex) % (nbItems));
 				setCurrentIndex(nextIndex)
 			},
 			updateCurrentPosition() {
@@ -270,20 +314,21 @@ export default ( {
 		() => {
 			if ( index !== undefined ) {
 				api.goTo(index);
-				
 			}
 		},
 		[index, defaultStyleId]
 	)
 	React.useEffect(
 		() => {
-			api.updateItemsAxes(axisConf.defaultPosition)
-			return tweener.watchAxis(
-				"slideAxis",
-				pos => api.updateItemsAxes(pos)
-			)
+			if ( updateItemAxes ) {
+				api.updateItemsAxes(axisConf.defaultPosition)
+				return tweener.watchAxis(
+					"slideAxis",
+					pos => api.updateItemsAxes(pos)
+				)
+			}
 		},
-		[]
+		[updateItemAxes]
 	)
 	React.useEffect(
 		() => {
@@ -312,7 +357,7 @@ export default ( {
 	)
 	return <ViewBox
 		className={"VoodooSlider Carousel " + className}
-		style={_style}
+		style={innerStyles.carouselStyle}
 		ref={rootRef}
 	>
 		<Voodoo.Axis
@@ -320,33 +365,47 @@ export default ( {
 			{...axisConf}
 		/>
 		
-		<Voodoo.Draggable xAxis={"slideAxis"}
-		                  className={"items"}
-		                  xHook={dragHook}
-		                  mouseDrag={true}>
-			{
-				state.allItems.map(
-					( Child, i ) =>
-						(
-							<Voodoo.Node
-								key={i}
-								style={
-									defaultInitial
-								}
-								axes={
-									state.tweenLines[i]
-								}
-							>
-								<div className={"slide"}
-								     onClick={onClick && (e => onClick(e, i % state.nbItems, api))}>
-									{
-										Child
+		{
+			innerStyles.prevBtnStyle
+			? <Voodoo.Node.div className={"btnPrev"} style={innerStyles.prevBtnStyle}
+			                   onClick={api.goPrev}>&lt;</Voodoo.Node.div>
+			: ""
+		}
+		<Voodoo.Node style={innerStyles.wrapperStyle}>
+			<Voodoo.Draggable xAxis={"slideAxis"}
+			                  className={"items"}
+			                  xHook={dragHook}
+			                  mouseDrag={true}>
+				{
+					state.allItems.map(
+						( Child, i ) =>
+							(
+								<Voodoo.Node
+									key={i}
+									style={
+										innerStyles.defaultInitial
 									}
-								</div>
-							</Voodoo.Node>
-						)
-				)
-			}
-		</Voodoo.Draggable>
+									axes={
+										state.tweenLines[i]
+									}
+								>
+									<div className={"slide"}
+									     onClick={onClick && (e => onClick(e, i % state.nbItems, api))}>
+										{
+											Child
+										}
+									</div>
+								</Voodoo.Node>
+							)
+					)
+				}
+			</Voodoo.Draggable>
+		</Voodoo.Node>
+		{
+			innerStyles.nextBtnStyle
+			? <Voodoo.Node.div className={"btnNext"} style={innerStyles.nextBtnStyle}
+			                   onClick={api.goNext}>&gt;</Voodoo.Node.div>
+			: ""
+		}
 	</ViewBox>
 }
