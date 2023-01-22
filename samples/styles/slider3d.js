@@ -19,16 +19,28 @@ export const wrapperStyle    = {
 	overflow: "hidden",
 };
 export const prevBtnStyle    = {
-	position  : "relative",
-	flexGrow  : "0",
-	flexShrink: 0,
-	padding   : "5px"
+	position      : "relative",
+	flexGrow      : "0",
+	flexShrink    : 0,
+	fontWeight    : "bolder",
+	fontSize      : "10em",
+	fontFamily    : "Calibri",
+	alignItems    : "center",
+	justifyContent: "center",
+	display       : "flex",
+	cursor        : "pointer",
 };
 export const nextBtnStyle    = {
-	position  : "relative",
-	flexGrow  : "0",
-	flexShrink: 0,
-	padding   : "5px"
+	position      : "relative",
+	flexGrow      : "0",
+	flexShrink    : 0,
+	fontWeight    : "bolder",
+	fontSize      : "10em",
+	fontFamily    : "Calibri",
+	alignItems    : "center",
+	justifyContent: "center",
+	display       : "flex",
+	cursor        : "pointer",
 };
 export const defaultInitial  = {
 	position : "absolute",

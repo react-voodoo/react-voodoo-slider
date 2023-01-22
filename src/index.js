@@ -23,6 +23,7 @@ export default ( {
 	                 prevBtnStyle,
 	                 nextBtnStyle,
 	                 wrapperStyle,
+	                 carouselStyle,
 	                 onClick,
 	                 onChange,
 	                 onWillChange,
@@ -50,7 +51,7 @@ export default ( {
 		innerStyles                     = React.useMemo(
 			() => {
 				let map      = {
-					carouselStyle  : { ...styles[defaultStyleId]?.carouselStyle, ...style },
+					carouselStyle          : { ...(carouselStyle || styles[defaultStyleId]?.carouselStyle), ...style },
 					defaultInitial : defaultInitial || styles[defaultStyleId]?.defaultInitial,
 					defaultEntering: defaultEntering || styles[defaultStyleId]?.defaultEntering,
 					defaultLeaving : defaultLeaving || styles[defaultStyleId]?.defaultLeaving,
@@ -69,6 +70,7 @@ export default ( {
 				defaultInitial,
 				defaultEntering,
 				defaultLeaving,
+				carouselStyle,
 				visibleItems,
 				prevBtnStyle,
 				wrapperStyle,
@@ -251,7 +253,6 @@ export default ( {
 				)
 			}
 		}), []);
-	
 	React.useEffect(
 		() => {
 			if ( locals._wasUserSnap ) {

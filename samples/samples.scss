@@ -61,16 +61,6 @@ body, html, #app, .app {
   height: 300px;
   display: flex;
 
-  .btnPrev, .btnNext {
-    font-weight: bolder;
-    font-size: 10em;
-    flex: 1;
-    font-family: Calibri;
-    align-items: center;
-    justify-content: center;
-    display: flex;
-    cursor: pointer;
-  }
 
   .slideInfos {
     @include use_hvCenteredAbs();
