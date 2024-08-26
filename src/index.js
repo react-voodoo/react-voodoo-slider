@@ -303,7 +303,10 @@ export default ( {
 	React.useEffect(
 		() => {
 			if ( !locals.firstDrawDone )
-				return locals.firstDrawDone = true;
+			{
+				locals.firstDrawDone = true;
+				return;
+			}
 			if ( !locals._isMoving )
 				api.updateCurrentPosition()
 			else
@@ -345,11 +348,11 @@ export default ( {
 					api.autoScrollUpdater,
 					autoScroll
 				)
-				rootRef.current.addEventListener("mouseover", mouseOver)
-				rootRef.current.addEventListener("mouseout", mouseOut)
+				rootRef.current?.addEventListener("mouseover", mouseOver)
+				rootRef.current?.addEventListener("mouseout", mouseOut)
 				return () => {
-					rootRef.current.removeEventListener("mouseover", mouseOver)
-					rootRef.current.removeEventListener("mouseout", mouseOut)
+					rootRef.current?.removeEventListener("mouseover", mouseOver)
+					rootRef.current?.removeEventListener("mouseout", mouseOut)
 					clearTimeout(locals.updaterTM);
 				}
 			}
