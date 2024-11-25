@@ -1,6 +1,6 @@
 {
   "name": "react-voodoo-slider",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "license": "MIT",
   "main": "./dist/react-voodoo-slider.js",
   "author": "Nathan Braun <n8tz.js@gmail.com>",
@@ -19,12 +19,13 @@
     "react-dom": "^16.0.0 || ^17.0.1 || ^18.0.1"
   },
   "dependencies": {
-    "react-voodoo": "^2.5.11"
+    "react-voodoo": "^2.5.12"
   },
   "devDependencies": {
+    "layer-pack": "^3.0.7",
+    "lpack-react": "^2.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "layer-pack": "^2.3.10",
-    "lpack-react": "^2.1.1"
+    "webpack-dev-server": "^5.1.0"
   }
 }

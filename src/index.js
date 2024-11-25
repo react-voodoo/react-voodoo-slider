@@ -51,7 +51,7 @@ export default ( {
 		innerStyles                     = React.useMemo(
 			() => {
 				let map      = {
-					carouselStyle          : { ...(carouselStyle || styles[defaultStyleId]?.carouselStyle), ...style },
+					carouselStyle  : { ...(carouselStyle || styles[defaultStyleId]?.carouselStyle), ...style },
 					defaultInitial : defaultInitial || styles[defaultStyleId]?.defaultInitial,
 					defaultEntering: defaultEntering || styles[defaultStyleId]?.defaultEntering,
 					defaultLeaving : defaultLeaving || styles[defaultStyleId]?.defaultLeaving,
@@ -140,7 +140,7 @@ export default ( {
 			{
 				items,
 				renderItem,
-				onChange,
+				onChange,innerStyles,
 				onWillChange,
 				updateItemAxes,
 				hookUpdateItemAxes,
@@ -196,20 +196,33 @@ export default ( {
 		),
 		api                             = React.useMemo(() => ({
 			updateItemsAxes: ( pos ) => {
-				let cPos = ((pos - 100) / locals.state.step);
+				let cPos = ((pos - 100) / locals.state.step),
+				    nbLR    = Math.max(~~(locals.innerStyles.visibleItems / 2), 0)+1;
 				locals.allItemRefs.forEach(
 					( itemTweener, i ) => {
-						let pos = cPos - i;
+						let pos   = cPos - i,
+						    close = pos;//(cPos-(i-nbLR))/(2*nbLR);
 						if ( pos < 0 ) {
-							pos = Math.max(pos, -1);
+							pos   = Math.max(pos, -1);
+							//close = Math.max(close, -nbLR);
 							itemTweener?.axes?.entering?.scrollTo((1 + pos) * 100, 0);
 							itemTweener?.axes?.leaving?.scrollTo(0, 0);
 						}
 						else {
 							pos = Math.min(pos, 1);
+							//close = Math.min(close, nbLR);
 							itemTweener?.axes?.entering?.scrollTo(100, 0);
 							itemTweener?.axes?.leaving?.scrollTo(pos * 100, 0);
 						}
+						if ( close < -nbLR || close > nbLR ) {
+							close   = 1;
+						}
+						else {
+							close = 0;
+						}
+
+						//console.log(':::218: ', close);
+						itemTweener?.axes?.visibleNext?.scrollTo((1 - close) * 100, 0);
 						itemTweener?.axes?.visible?.scrollTo((1 - Math.abs(pos)) * 100, 0);
 						locals.hookUpdateItemAxes?.(itemTweener, cPos - i)
 					}
@@ -302,8 +315,8 @@ export default ( {
 	)
 	React.useEffect(
 		() => {
-			if ( !locals.firstDrawDone )
-			{
+			if ( !locals.firstDrawDone ) {
+				api.updateItemsAxes(axisConf.defaultPosition||0)
 				locals.firstDrawDone = true;
 				return;
 			}
@@ -325,7 +338,10 @@ export default ( {
 	React.useEffect(
 		() => {
 			if ( updateItemAxes ) {
-				api.updateItemsAxes(axisConf.defaultPosition)
+				
+				requestAnimationFrame(()=>{
+					api.updateItemsAxes(tweener.axes.slideAxis.scrollPos)
+				})
 				return tweener.watchAxis(
 					"slideAxis",
 					pos => api.updateItemsAxes(pos)
@@ -334,6 +350,14 @@ export default ( {
 		},
 		[updateItemAxes]
 	)
+	//React.useEffect(
+	//	() => {
+	//		if ( updateItemAxes ) {
+	//			api.updateItemsAxes(axisConf.defaultPosition||0)
+	//		}
+	//	},
+	//	[state.allItems]
+	//)
 	React.useEffect(
 		() => {
 			if ( autoScroll ) {
