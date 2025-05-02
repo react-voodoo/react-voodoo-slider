@@ -29,6 +29,7 @@ import Slide                  from "./comps/Slide";
 import Slider, {customStyles} from "..";
 import myCustomStyles         from "./styles/(*).js";
 
+import {renderToString}                            from "react-dom/server";
 import "./samples.scss";
 
 Object.assign(customStyles, myCustomStyles);
@@ -50,7 +51,7 @@ function generateStubs() {
 
 const App = () => {
 	const [slideIndex, setSlideIndex] = React.useState(0),
-	      [styleId, setStyleId]       = React.useState("default"),
+	      [styleId, setStyleId]       = React.useState("slider3d"),
 	      [stubs, setStubs]           = React.useState(generateStubs());
 	return <div className={"sample"}>
 		<Slider
@@ -90,6 +91,8 @@ function renderSamples() {
 	ReactDom.render(
 		<App/>
 		, document.getElementById('app'));
+	//let node=document.getElementById('app');
+	//node.innerHTML=renderToString(<App/>)
 	
 }
 

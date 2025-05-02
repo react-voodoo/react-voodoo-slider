@@ -11,6 +11,39 @@ function useTracked( refs ) {
 	return scope;
 }
 
+function genItemsInitialAxesPos( pos, nbItems, step, visibleItems ) {
+	let cPos           = ((pos - 100) / step),
+	    nbLR           = Math.max(~~(visibleItems / 2), 0) + 1,
+	    initialByItems = [];
+	for ( let i = 0; i < nbItems; i++ ) {
+		let pos           = cPos - i,
+		    close         = pos;//(cPos-(i-nbLR))/(2*nbLR);
+		initialByItems[i] = {};
+		if ( pos < 0 ) {
+			pos                        = Math.max(pos, -1);
+			//close = Math.max(close, -nbLR);
+			initialByItems[i].entering = (1 + pos) * 100;
+			initialByItems[i].leaving  = 0;
+		}
+		else {
+			pos                        = Math.min(pos, 1);
+			//close = Math.min(close, nbLR);
+			initialByItems[i].entering = 100;
+			initialByItems[i].leaving  = pos * 100;
+		}
+		if ( close < -nbLR || close > nbLR ) {
+			close = 1;
+		}
+		else {
+			close = 0;
+		}
+		
+		//console.log(':::218: ', close);
+		initialByItems[i].visibleNext = (1 - close) * 100;
+		initialByItems[i].visible     = (1 - Math.abs(pos)) * 100;
+	}
+	return initialByItems;
+}
 
 export let customStyles = styles;
 export default ( {
@@ -105,9 +138,14 @@ export default ( {
 					allItems = allItems.map(( elem, i ) => renderItem(elem, i, ref => (allItemRefs[i] = ref)))
 				}
 				else if ( updateItemAxes ) {
-					allItems = allItems.map(( elem, i ) => React.cloneElement(elem, {
+					let initialChildAxesPos = genItemsInitialAxesPos(dec + step * currentIndex + 100, allItems.length, step, innerStyles.visibleItems);
+					//allItemRefs.length=allItems.length;
+					allItems                = allItems.map(( elem, i ) => React.cloneElement(elem, {
 						key      : i,
-						voodooRef: ref => (allItemRefs[i] = ref)
+						voodooRef: ref => {
+							ref._.defaultAxesPosition = initialChildAxesPos[i];
+							allItemRefs[i]            = ref;
+						}
 					}))
 				}
 				else {
@@ -140,7 +178,7 @@ export default ( {
 			{
 				items,
 				renderItem,
-				onChange,innerStyles,
+				onChange, innerStyles,
 				onWillChange,
 				updateItemAxes,
 				hookUpdateItemAxes,
@@ -197,13 +235,13 @@ export default ( {
 		api                             = React.useMemo(() => ({
 			updateItemsAxes: ( pos ) => {
 				let cPos = ((pos - 100) / locals.state.step),
-				    nbLR    = Math.max(~~(locals.innerStyles.visibleItems / 2), 0)+1;
+				    nbLR = Math.max(~~(locals.innerStyles.visibleItems / 2), 0) + 1;
 				locals.allItemRefs.forEach(
 					( itemTweener, i ) => {
 						let pos   = cPos - i,
 						    close = pos;//(cPos-(i-nbLR))/(2*nbLR);
 						if ( pos < 0 ) {
-							pos   = Math.max(pos, -1);
+							pos = Math.max(pos, -1);
 							//close = Math.max(close, -nbLR);
 							itemTweener?.axes?.entering?.scrollTo((1 + pos) * 100, 0);
 							itemTweener?.axes?.leaving?.scrollTo(0, 0);
@@ -215,12 +253,12 @@ export default ( {
 							itemTweener?.axes?.leaving?.scrollTo(pos * 100, 0);
 						}
 						if ( close < -nbLR || close > nbLR ) {
-							close   = 1;
+							close = 1;
 						}
 						else {
 							close = 0;
 						}
-
+						
 						//console.log(':::218: ', close);
 						itemTweener?.axes?.visibleNext?.scrollTo((1 - close) * 100, 0);
 						itemTweener?.axes?.visible?.scrollTo((1 - Math.abs(pos)) * 100, 0);
@@ -316,7 +354,7 @@ export default ( {
 	React.useEffect(
 		() => {
 			if ( !locals.firstDrawDone ) {
-				api.updateItemsAxes(axisConf.defaultPosition||0)
+				api.updateItemsAxes(axisConf.defaultPosition || 0)
 				locals.firstDrawDone = true;
 				return;
 			}
@@ -339,7 +377,7 @@ export default ( {
 		() => {
 			if ( updateItemAxes ) {
 				
-				requestAnimationFrame(()=>{
+				requestAnimationFrame(() => {
 					api.updateItemsAxes(tweener.axes.slideAxis.scrollPos)
 				})
 				return tweener.watchAxis(

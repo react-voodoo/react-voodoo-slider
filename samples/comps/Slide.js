@@ -11,7 +11,7 @@ import Voodoo     from "react-voodoo";
 
 export default ( {
 	                 children, record,
-	                 voodooRef,
+	                 voodooRef, axesInit,
 	                 ...props
                  } ) => {
 	const
@@ -20,43 +20,17 @@ export default ( {
 		styles             = React.useMemo(
 			() => (
 				{
-					content : {
+					content: {
 						style: {
-							display : "none",
-						},
-						axes : {
-							visible: [
-								{
-									from    : 1,
-									duration: 1,
-									apply   : {
-										//display: "block",
-										//color:"red"
-									}
-								},
-							]
-						}
-					},
-					marker : {
-						style: {
-							position: "absolute",
-							top     : "20%",
-							//left     : "5%",
-							right    : "5%",
-							color    : "white",
-							fontSize : "4em",
-							opacity  : 0,
-							transform: [{
-								//translateY: "-5em"
-							}]
+							display: "none",
 						},
 						axes : {
 							visibleNext: [
 								{
-									from    : 0,
-									duration: 100,
+									from    : 1,
+									duration: 1,
 									apply   : {
-										opacity: 1,
+										display: "block",
 										//color:"red"
 									}
 								},
@@ -77,7 +51,7 @@ export default ( {
 							}]
 						},
 						axes : {
-							entering   : [
+							entering: [
 								{
 									from    : 0,
 									duration: 100,
@@ -91,7 +65,7 @@ export default ( {
 									}
 								},
 							],
-							leaving    : [
+							leaving : [
 								{
 									from    : 0,
 									duration: 100,
@@ -109,12 +83,12 @@ export default ( {
 					},
 					summary: {
 						style: {
-							position : "absolute",
-							top      : ["20%", "3em"],
-							left     : "10%",
-							right    : "40%",
-							color    : "rgb(255,0,0)",
-							fontSize : "2em",
+							position: "absolute",
+							top     : ["20%", "3em"],
+							left    : "10%",
+							right   : "40%",
+							color   : "rgb(255,0,0)",
+							fontSize: "2em",
 							opacity  : 0,
 							transform: [{
 								translateX: "3em"
@@ -126,6 +100,8 @@ export default ( {
 									from    : 0,
 									duration: 100,
 									apply   : {
+										//color    : "rgb(0,255,0)",
+										color: { r: -255, g: 255 },
 										opacity  : 1,
 										transform: [
 											{
@@ -142,18 +118,7 @@ export default ( {
 			[]
 		);
 	
-	React.useEffect(
-		() => {
-			voodooRef?.(tweener);
-			return tweener.watchAxis("visibleNext", ( pos ) => {
-				setP(pos)
-				if ( pos )
-					console.log(':::143: ', record.label, pos);
-				
-			})
-		},
-		[]
-	)
+	voodooRef?.(tweener);
 	
 	return <ViewBox className={'Slide '}>
 		<Voodoo.Axis
@@ -184,11 +149,8 @@ export default ( {
 					<img src={record.backgroundImage} draggable={false}/>
 				}
 				
-				<Voodoo.Node.div className={"marker"} {...styles.marker}>
-					!o!
-				</Voodoo.Node.div>
 				<Voodoo.Node.div className={"label"} {...styles.label}>
-					{p} {record.label}
+					{record.label}
 				</Voodoo.Node.div>
 				<Voodoo.Node.div className={"summary"} {...styles.summary}>
 					<span dangerouslySetInnerHTML={{ __html: (record.summary || "").replace(/\n/ig, "<br/>") }}/>
