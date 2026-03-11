@@ -873,15 +873,41 @@ __webpack_require__.r(__webpack_exports__);
 
 var _excluded = ["children", "record", "voodooRef", "axesInit"];
 /*
- * Copyright (c) 2020-2022. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
- * Morbi non lorem porttitor neque feugiat blandit. Ut vitae ipsum eget quam lacinia accumsan.
- * Etiam sed turpis ac ipsum condimentum fringilla. Maecenas magna.
- * Proin dapibus sapien vel ante. Aliquam erat volutpat. Pellentesque sagittis ligula eget metus.
- * Vestibulum commodo. Ut rhoncus gravida arcu.
+ * Copyright (c) 2020-2022.
  */
 
 
 
+
+/**
+ * Slide — individual carousel slide with its own inner Voodoo tweener.
+ *
+ * Architecture
+ * ────────────
+ * When the parent VoodooSlider has `updateItemAxes={true}`, it calls
+ * `api.updateItemsAxes(pos)` every frame and drives four named axes on each
+ * slide's inner tweener:
+ *
+ *   entering    [0 → 100]  — slide is approaching the centre from the right.
+ *   leaving     [0 → 100]  — slide is departing from the centre to the left.
+ *   visible     [0 → 100]  — continuous proximity to centre (100 = centred, 0 = ±1 slide away).
+ *   visibleNext [0 → 100]  — binary: 100 when within the visible neighbourhood, 0 when far away.
+ *
+ * Each inner node (`content`, `label`, `summary`) subscribes to one or more
+ * of these axes to animate its own properties independently of the outer slide
+ * translation.
+ *
+ * Props
+ * ─────
+ * @prop {object}   record     Data object: { label, summary, backgroundImage }
+ * @prop {function} voodooRef  Callback injected by the slider — receives this
+ *                             slide's tweener instance so the slider can drive
+ *                             its axes via `itemTweener.axes.entering.scrollTo(…)`.
+ * @prop {*}        children   Unused; present for composition compatibility.
+ * @prop {object}   axesInit   Reserved for SSR initial axis positions (set by the
+ *                             slider via `ref._.defaultAxesPosition`).
+ * @prop {*}        ...props   Forwarded to ViewBox.
+ */
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (function (_ref) {
   var children = _ref.children,
     record = _ref.record,
@@ -898,11 +924,19 @@ var _excluded = ["children", "record", "voodooRef", "axesInit"];
     setP = _React$useState2[1],
     styles = react__WEBPACK_IMPORTED_MODULE_3__.useMemo(function () {
       return {
+        // ── content ────────────────────────────────────────────────
+        // The content wrapper is hidden by default (display: none) and
+        // revealed as soon as the slide enters the visible neighbourhood.
+        // This avoids rendering images and text for slides that are too
+        // far away to be seen, saving GPU memory on large lists.
         content: {
           style: {
             display: "none"
           },
           axes: {
+            // `visibleNext` goes from 0 → 100 when the slide is near.
+            // At position 1 (effectively "just became visible") we flip
+            // display to "block" via a 1-unit instantaneous tween.
             visibleNext: [{
               from: 1,
               duration: 1,
@@ -913,6 +947,11 @@ var _excluded = ["children", "record", "voodooRef", "axesInit"];
             }]
           }
         },
+        // ── label ─────────────────────────────────────────────────
+        // The slide title.  Hooks into `entering` and `leaving` axes
+        // for per-element choreography on top of the outer slide motion.
+        // (opacity and translateY tweens are commented out — they serve
+        // as a ready-made template to enable custom entry/exit effects.)
         label: {
           style: {
             position: "absolute",
@@ -949,17 +988,29 @@ var _excluded = ["children", "record", "voodooRef", "axesInit"];
             }]
           }
         },
+        // ── summary ───────────────────────────────────────────────
+        // Secondary text below the title.  Animates on the `visible`
+        // axis (proximity to centre) rather than `entering`/`leaving`,
+        // so it fades+slides in smoothly as the slide approaches and
+        // fades out as it recedes — regardless of direction.
+        //
+        // Base style parks it invisible and offset to the right.
+        // The `visible` tween: opacity 0→1, translateX -3em→0 as the
+        // slide nears the centre.
+        // Color is also animatable (commented-out example shown).
         summary: {
           style: {
             position: "absolute",
             top: ["20%", "3em"],
+            // multi-unit: calc(20% + 3em)
             left: "10%",
             right: "40%",
             color: "rgb(255,0,0)",
             fontSize: "2em",
             opacity: 0,
+            // invisible at rest
             transform: [{
-              translateX: "3em"
+              translateX: "3em" // shifted right at rest
             }]
           },
           axes: {
@@ -972,16 +1023,24 @@ var _excluded = ["children", "record", "voodooRef", "axesInit"];
                   r: -255,
                   g: 255
                 },
+                // rgb delta: red→green as slide centres
                 opacity: 1,
+                // fade in as proximity → 100
                 transform: [{
-                  translateX: "-3em"
+                  translateX: "-3em" // slide in from right (base 3em + delta -3em = 0)
                 }]
               }
             }]
           }
         }
       };
-    }, []);
+    }, [] // constant — no dependencies
+    );
+
+  // Expose this slide's tweener to the parent slider so it can drive the
+  // entering/leaving/visible/visibleNext axes on every slideAxis frame.
+  // Called during render (not in an effect) so the ref is available before
+  // the first axis update fires.
   voodooRef === null || voodooRef === void 0 || voodooRef(tweener);
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_3__.createElement(ViewBox, {
     className: 'Slide '
@@ -996,7 +1055,7 @@ var _excluded = ["children", "record", "voodooRef", "axesInit"];
     defaultPosition: 0
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_3__.createElement((react_voodoo__WEBPACK_IMPORTED_MODULE_4___default().Axis), {
     id: "leaving",
-    defaultPosition: 100
+    defaultPosition: 100 // starts at 100 so the leaving tween is fully applied (slide is off-screen left)
   }), record && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_3__.createElement((react_voodoo__WEBPACK_IMPORTED_MODULE_4___default().Node).div, (0,_babel_runtime_helpers_extends__WEBPACK_IMPORTED_MODULE_0__["default"])({
     className: "content"
   }, styles.content), record.backgroundImage && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_3__.createElement("img", {
@@ -1049,21 +1108,70 @@ __webpack_require__.r(__webpack_exports__);
  * If not, see <http://creativecommons.org/licenses/by-nd/4.0/> or <http://www.gnu.org/licenses/agpl-3.0.txt>.
  */
 
+/**
+ * FourItems style preset — horizontal 5-up strip.
+ *
+ * Layout
+ * ──────
+ * Five slides are visible at once, each occupying 25% of the container width.
+ * They are positioned absolutely and slide horizontally.
+ *
+ *   Container (100% wide, overflow hidden)
+ *   ┌────────────────────────────────────────────────────────────────┐
+ *   │ [25%] [25%] [25%] [25%]  ← four visible at a time             │
+ *   └────────────────────────────────────────────────────────────────┘
+ *
+ * Coordinate math
+ * ───────────────
+ * Base style: left = 100%, translateX = 0 → slide starts parked just off the
+ * right edge.
+ *
+ * `defaultEntering` applies a delta of translateX = -400% (of element width).
+ * With an element that is 25% of the container, 400% × 25% = 100% container.
+ * So at full progress (entering complete) the slide has moved exactly one full
+ * container width to the left, arriving at the rightmost visible slot.
+ *
+ * `defaultLeaving` applies the same delta so that the slide continues sliding
+ * one full container width further left, exiting off the left edge.
+ *
+ * The layout uses `display: flex` on the carousel container and a separate
+ * `wrapperStyle` so that the optional prev/next buttons sit outside the slide
+ * strip without affecting the slide coordinate system.
+ */
+
+/**
+ * How many slides are simultaneously in view.
+ * Controls drag sensitivity: swiping the full container width advances by 5
+ * slides.
+ */
 var visibleItems = 5;
+
+/**
+ * carouselStyle — outermost container.
+ * Flex row so the prev/next buttons flank the slide wrapper without overlap.
+ */
 var carouselStyle = {
   position: "relative",
   overflow: "hidden",
   display: "flex",
+  // buttons + wrapper in a row
   userSelect: "none",
   transform: {
     translateZ: "0px"
-  }
+  } // compositor layer promotion
 };
+
+/**
+ * wrapperStyle — inner slide strip (grows to fill remaining space).
+ * overflow: hidden clips slides that are outside the visible range.
+ */
 var wrapperStyle = {
   position: "relative",
   flexGrow: "1",
   overflow: "hidden"
 };
+
+/** prevBtnStyle / nextBtnStyle — large "‹" and "›" navigation buttons. */
 var prevBtnStyle = {
   position: "relative",
   flexGrow: "0",
@@ -1088,18 +1196,35 @@ var nextBtnStyle = {
   display: "flex",
   cursor: "pointer"
 };
+
+/**
+ * defaultInitial — base (t = 0) style for every slide node.
+ *
+ * Each slide is 25% wide and 70% tall (centred vertically via top: 15%).
+ * `left: 100%` parks it just off the right edge of the wrapper.
+ * `translateX: 0px` is the baseline for the entering/leaving deltas.
+ */
 var defaultInitial = {
   position: "absolute",
   height: "70%",
   width: "25%",
+  // four slides across the container
   top: "15%",
+  // vertically centred
   left: "100%",
+  // parked off-screen right
   zIndex: 50,
   fontSize: ".4em",
   transform: [{
-    translateX: "0px"
+    translateX: "0px" // baseline; entering/leaving deltas accumulate here
   }]
 };
+
+/**
+ * scrollAxis — extra tween applied while a slide is "passing through" centre.
+ * Currently only raises zIndex so the active slide appears above its neighbours.
+ * The rotate transform is commented out as a ready-to-use example.
+ */
 var scrollAxis = [{
   from: 0,
   duration: 100,
@@ -1108,20 +1233,36 @@ var scrollAxis = [{
     transform: {
       //rotate: "-" + stepAngle,
     },
-    zIndex: 150
+    zIndex: 150 // float above resting slides while passing through
   }
 }];
+
+/**
+ * defaultEntering — moves the slide from off-screen right into the strip.
+ *
+ * Delta translateX = -400% of element width (25% container) = -100% container.
+ * Entering tween: slide travels one full container width to the left, landing
+ * at the rightmost visible slot in the strip.
+ */
 var defaultEntering = [{
   from: 0,
   duration: 100,
   //easeFn  : "easeSinIn",
   apply: {
     transform: [{
-      translateX: "-400%"
+      translateX: "-400%" // base(0) + delta(-400%) = -400% → rightmost slot
     }]
   }
 }];
-//export const dragHook  = p => -p;
+//export const dragHook  = p => -p;  // uncomment to invert drag direction
+
+/**
+ * defaultLeaving — moves the slide from the strip off-screen left.
+ *
+ * Same magnitude as entering so the slide exits by the same distance it
+ * entered.  At the start of leaving the slide is at translateX = -400%
+ * (rightmost slot); by the end it is at -800%, off the left edge.
+ */
 var defaultLeaving = [{
   from: 0,
   duration: 100,
@@ -1129,7 +1270,7 @@ var defaultLeaving = [{
   //easeFn: "easeSinOut",
   apply: {
     transform: [{
-      translateX: "-400%"
+      translateX: "-400%" // continues sliding left, exits off-screen
     }]
   }
 }];
@@ -1166,21 +1307,67 @@ __webpack_require__.r(__webpack_exports__);
  * If not, see <http://creativecommons.org/licenses/by-nd/4.0/> or <http://www.gnu.org/licenses/agpl-3.0.txt>.
  */
 
+/**
+ * ThreeItems style preset — horizontal 3-up strip.
+ *
+ * Layout
+ * ──────
+ * Three slides share the container width equally, each 33% wide and full
+ * height.  They slide horizontally.
+ *
+ *   ┌──────────┬──────────┬──────────┐
+ *   │  left    │  centre  │  right   │  ← all three visible at once
+ *   └──────────┴──────────┴──────────┘
+ *
+ * Coordinate math
+ * ───────────────
+ * Base: left = 100%, translateX = 0 → slide is parked just off-screen right.
+ *
+ * `defaultEntering` delta: translateX = -202% (of element = 33% container).
+ *   202% × 33% ≈ 66.7% of the container.
+ *   100% (left) − 66.7% ≈ 33.3% → the slide lands at the rightmost visible slot.
+ *
+ * The +2% overshoot beyond the exact 200% keeps a 1-pixel hairline gap from
+ * appearing between slides due to sub-pixel rounding.
+ *
+ * `defaultLeaving` uses the same delta: from the rightmost slot the slide
+ * continues 66.7% further left, landing off-screen.
+ *
+ * The layout uses flex so the optional prev/next buttons sit outside the strip.
+ */
+
+/**
+ * How many slides are simultaneously in view.
+ * A full swipe across the container advances by 3 slides.
+ */
 var visibleItems = 3;
+
+/**
+ * carouselStyle — outermost container.
+ * Flex row so the prev/next buttons flank the wrapper.
+ */
 var carouselStyle = {
   position: "relative",
   overflow: "hidden",
   display: "flex",
+  // buttons + wrapper side by side
   userSelect: "none",
   transform: {
     translateZ: "0px"
-  }
+  } // compositor layer promotion
 };
+
+/**
+ * wrapperStyle — inner slide strip.
+ * Grows to fill all available width between the two buttons.
+ */
 var wrapperStyle = {
   position: "relative",
   flexGrow: "1",
   overflow: "hidden"
 };
+
+/** prevBtnStyle / nextBtnStyle — large "‹" and "›" navigation buttons. */
 var prevBtnStyle = {
   position: "relative",
   flexGrow: "0",
@@ -1205,42 +1392,73 @@ var nextBtnStyle = {
   display: "flex",
   cursor: "pointer"
 };
+
+/**
+ * defaultInitial — base (t = 0) style for each slide node.
+ *
+ * `width: 33%` — one third of the wrapper.
+ * `left: 100%` — parked just off the right edge, out of view.
+ * `translateX: 0px` — baseline for the entering/leaving deltas.
+ */
 var defaultInitial = {
   position: "absolute",
   height: "100%",
   width: "33%",
+  // three slides fill the wrapper
   top: "0%",
   left: "100%",
+  // parked off-screen right
   zIndex: 50,
   fontSize: ".5em",
   transform: [{
-    translateX: "0px"
+    translateX: "0px" // delta baseline
   }]
 };
+
+/**
+ * scrollAxis — additional tween active while a slide is the focused centre.
+ * Raises zIndex so the active slide floats above its neighbours.
+ */
 var scrollAxis = [{
   from: 0,
   duration: 100,
   //easeFn  : "easeSinIn",
   apply: {
-    zIndex: 150
+    zIndex: 150 // centre slide appears on top during transition
   }
 }];
+
+/**
+ * defaultEntering — slides the card from off-screen right into the strip.
+ *
+ * -202% of element width (33% of container) ≈ -66.7% of container.
+ * Final position: left(100%) + translateX(-66.7%) ≈ 33.3% → rightmost slot.
+ * The 2% extra prevents sub-pixel gaps between adjacent slides.
+ */
 var defaultEntering = [{
   from: 0,
   duration: 100,
   //easeFn  : "easeSinIn",
   apply: {
     transform: [{
-      translateX: "-202%"
+      translateX: "-202%" // -202% × 33% ≈ -66.7% container → rightmost slot
     }]
   }
 }];
+
+/**
+ * defaultLeaving — continues the leftward motion off-screen.
+ *
+ * At the start of leaving, the slide is at the rightmost slot (translateX
+ * already at -202% from entering).  Adding another -202% moves it off the
+ * left edge.
+ */
 var defaultLeaving = [{
   from: 0,
   duration: 100,
   apply: {
     transform: [{
-      translateX: "-202%"
+      translateX: "-202%" // continues left, exits the viewport
     }]
   }
 }];
@@ -1272,8 +1490,66 @@ __webpack_require__.r(__webpack_exports__);
  *  MIT
  */
 
+/**
+ * slider3d style preset — 3D fan / arc carousel.
+ *
+ * Visual effect
+ * ─────────────
+ * Cards are arranged in a perspective arc: the centre card faces the viewer
+ * straight-on, while cards to either side are rotated slightly around the
+ * Y-axis and recede into the background.  Transitioning to a new slide rotates
+ * the fan, with cards fading in/out at the edges.
+ *
+ * Transform layer architecture
+ * ────────────────────────────
+ * Three independent transform layers allow different axes to modify different
+ * parts of the transform stack without overwriting each other:
+ *
+ *   Layer 0 — centering (static)
+ *     translateX: -50%, translateY: -50%
+ *     Shifts the card's origin from its top-left corner to its centre so that
+ *     all subsequent rotations and translations happen around the card centre.
+ *
+ *   Layer 1 — arc rotation (animated by slideAxis)
+ *     perspective: 1250px
+ *     translateY: -30000px  ┐
+ *     rotate: -stepAngle    ├─ the "arc trick": a huge Y translate + rotate
+ *     translateY: +30000px  ┘  bends the straight translateX path into an arc.
+ *
+ *     The trick: translate far up, rotate slightly, translate far back down.
+ *     Because the rotation pivot is now 30000px away, a small angle (2.05°)
+ *     moves the card along a smooth circular arc instead of a straight line.
+ *
+ *   Layer 2 — depth & face rotation (animated by slideAxis)
+ *     translateZ: -500px   — cards start recessed into the scene
+ *     rotateY: 15deg       — cards start angled sideways
+ *     → entering tween brings them forward (translateZ 0) and face-on (rotateY 0)
+ *
+ * stepAngle
+ * ─────────
+ * The angular gap between adjacent cards on the arc.  Smaller values pack
+ * cards tighter; larger values spread them further apart.
+ *
+ * dragHook
+ * ────────
+ * `p => -p` inverts the raw drag delta.  Without inversion, dragging right
+ * would move the arc right too, which feels backwards for a fan where dragging
+ * right should bring left-side cards forward.
+ */
+
+/** Angular separation between adjacent cards on the arc (in degrees). */
 var stepAngle = "2.05deg";
+
+/**
+ * How many cards are simultaneously rendered on the arc.
+ * Higher values mean more ghost slides in infinite mode.
+ */
 var visibleItems = 5;
+
+/**
+ * carouselStyle — outermost container.
+ * Flex row so optional buttons can flank the arc.
+ */
 var carouselStyle = {
   position: "relative",
   overflow: "hidden",
@@ -1281,13 +1557,17 @@ var carouselStyle = {
   userSelect: "none",
   transform: {
     translateZ: "0px"
-  }
+  } // compositor layer promotion
 };
+
+/** wrapperStyle — clip area for the arc strip. */
 var wrapperStyle = {
   position: "relative",
   flexGrow: "1",
   overflow: "hidden"
 };
+
+/** prevBtnStyle / nextBtnStyle — large "‹" and "›" navigation buttons. */
 var prevBtnStyle = {
   position: "relative",
   flexGrow: "0",
@@ -1312,83 +1592,161 @@ var nextBtnStyle = {
   display: "flex",
   cursor: "pointer"
 };
+
+/**
+ * defaultInitial — base (t = 0) style for each card node.
+ *
+ * The card is absolutely centred in the container (top/left 50%, then layer-0
+ * translateX/Y -50% corrects for the element's own size).
+ *
+ * Starting state:
+ *   • opacity: 0       — invisible until the entering tween fades it in
+ *   • Layer 1 rotate = -stepAngle  — parked one step to the right of centre
+ *   • Layer 2 translateZ = -500px  — recessed 500 px into the scene
+ *   • Layer 2 rotateY = 15deg      — angled sideways (not face-on)
+ */
 var defaultInitial = {
   position: "absolute",
   height: "25em",
   width: "40em",
   top: "50%",
+  // vertically centred (corrected by layer 0 translateY)
   left: "50%",
+  // horizontally centred (corrected by layer 0 translateX)
   fontSize: ".5em",
   zIndex: 50,
   opacity: 0,
-  transform: [{
+  // cards start invisible; entering fades them in
+  transform: [
+  // Layer 0 — centering: shift origin to card centre
+  {
     translateX: "-50%",
     translateY: "-50%"
-  }, {
+  },
+  // Layer 1 — arc positioning
+  {
     perspective: "1250px",
     translateY: "-30000px",
-    rotate: "-" + stepAngle
-  }, {
+    // huge offset for the arc-rotation trick
+    rotate: "-" + stepAngle // one step clockwise (parked to the right)
+  },
+  // Layer 2 — depth & face angle
+  {
     translateY: "30000px",
+    // cancel the layer-1 Y offset
     translateZ: "-500px",
-    rotateY: "15deg"
+    // recessed into background
+    rotateY: "15deg" // angled sideways at rest
   }]
 };
+
+/**
+ * scrollAxis — tween applied as the card passes through the active (centre) slot.
+ *
+ * Adds one additional -stepAngle rotation (layer 1) to push the card through
+ * its arc position.  Also raises zIndex so the passing card appears on top.
+ */
 var scrollAxis = [{
   from: 0,
   duration: 100,
   //easeFn  : "easeSinIn",
   apply: {
     transform: [, {
-      rotate: "-" + stepAngle
+      // layer 1 only (layer 0 slot skipped with comma)
+      rotate: "-" + stepAngle // advance one more step along the arc
     }],
-    zIndex: 150
+    zIndex: 150 // float above neighbouring cards while active
   }
 }];
+
+/**
+ * defaultEntering — brings a card from the right side of the arc to the centre.
+ *
+ * Three tweens run in parallel / sequence:
+ *
+ *   [0 → 100]  rotate layer 1 by +stepAngle → card moves one arc step forward
+ *              zIndex 150 → raised above neighbours during motion
+ *
+ *   [25 → 45]  opacity 0 → 1 → card fades in as it approaches the centre
+ *              (delayed start so the card doesn't pop in at the far edge)
+ *
+ *   [55 → 100] layer 2: rotateY 0 + translateZ +500px → card straightens to
+ *              face-on and advances from -500px to 0 (arrives at the front)
+ */
 var defaultEntering = [{
   from: 0,
   duration: 100,
   easeFn: "easeSinIn",
   apply: {
     transform: [, {
-      rotate: stepAngle
+      // layer 1
+      rotate: stepAngle // +stepAngle cancels the base -stepAngle → card at centre
     }],
     zIndex: 150
   }
 }, {
   from: 25,
+  // fade in starts after card has moved 25% along the arc
   duration: 20,
   apply: {
-    opacity: 1
+    opacity: 1 // base(0) + delta(1) = fully visible at centre
   }
 }, {
   from: 55,
+  // depth/face correction starts past the halfway point
   duration: 45,
   apply: {
     transform: [, {}, {
+      // layer 2 (layers 0 & 1 slots skipped)
       rotateY: "-15deg",
-      translateZ: "500px"
+      // cancels base +15deg → face-on at centre
+      translateZ: "500px" // cancels base -500px → at the front of the scene
       //rotateX: "-90deg",
     }]
   }
 }];
+
+/**
+ * dragHook — inverts the drag delta.
+ *
+ * Without inversion, a rightward drag would shift the arc to the right, making
+ * the left card come forward — the opposite of the expected swipe direction.
+ * Negating the delta makes the gesture match the visual expectation.
+ */
 var dragHook = function dragHook(p) {
   return -p;
 };
+
+/**
+ * defaultLeaving — moves a card from the centre to the left side of the arc.
+ *
+ * Three tweens run in parallel / sequence (mirror of entering):
+ *
+ *   [0 → 45]   layer 2: rotateY back to +15deg, translateZ back to -500px
+ *              → card tilts sideways and recedes as it departs
+ *
+ *   [55 → 75]  opacity 1 → 0 → card fades out near the edge
+ *
+ *   [0 → 100]  rotate layer 1 by +stepAngle → card moves one arc step backward
+ *              zIndex -150 → sunk below incoming cards during motion
+ */
 var defaultLeaving = [{
   from: 0,
   duration: 45,
   apply: {
     transform: [, {}, {
+      // layer 2
       rotateY: "-15deg",
-      translateZ: "-500px"
+      // tilt sideways as the card departs
+      translateZ: "-500px" // recess back into the background
     }]
   }
 }, {
   from: 55,
+  // fade out starts after the card is well past centre
   duration: 20,
   apply: {
-    opacity: -1
+    opacity: -1 // base(1 from entering) + delta(-1) = 0 → invisible at the edge
   }
 }, {
   from: 0,
@@ -1397,8 +1755,11 @@ var defaultLeaving = [{
   easeFn: "easeSinOut",
   apply: {
     zIndex: -150,
+    // sink below all other cards while departing
+
     transform: [, {
-      rotate: stepAngle
+      // layer 1
+      rotate: stepAngle // moves one arc step backward (to the left)
     }]
   }
 }];
@@ -49977,7 +50338,7 @@ module.exports = function (list, options) {
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 /*! For license information please see react-voodoo.js.LICENSE.txt */
-(()=>{var e={34:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>n.demux,mux:()=>n.mux,release:()=>n.release});var n=r(142)},49:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>h,demuxOne:()=>g,mux:()=>m,muxOne:()=>v,release:()=>d});var n=r(213),o=r.n(n),i=r(767),a=r.n(i),s=r(597);function l(e,t){var r=Object.keys(e);if(Object.getOwnPropertySymbols){var n=Object.getOwnPropertySymbols(e);t&&(n=n.filter((function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable}))),r.push.apply(r,n)}return r}function c(e){for(var t=1;t<arguments.length;t++){var r=null!=arguments[t]?arguments[t]:{};t%2?l(Object(r),!0).forEach((function(t){o()(e,t,r[t])})):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(r)):l(Object(r)).forEach((function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(r,t))}))}return e}var u={translateX:"px",translateY:"px",translateZ:"px",scale:"",scaleZ:"",scaleX:"",scaleY:"",rotate:"deg",skewX:"deg",skewY:"deg",rotateX:"deg",rotateY:"deg",rotateZ:"deg",perspective:"px"},p={translateX:"x",translateY:"y",translateZ:"z",rotateX:"x",rotateY:"y",rotateZ:"z",left:"x",right:"x",top:"y",bottom:"y",width:"x",height:"y"},f={scale:1,scaleX:1,scaleY:1,scaleZ:1};function d(e,t,r,n,o,i){var a,s=e.split("_");if(4===s.length){if(--n[s[0]][s[1]][s[2]]||i||delete n[s[0]][s[1]][s[2]],!i)for(;n[s[0]].length&&!n[s[0]][n[s[0]].length-1];)n[s[0]].pop();if(--n[a=s[0]+"_"+s[1]+"_"+s[2]][s[3]]||i||(delete n[a][s[3]],delete t[e]),!i)for(;n[a].length&&!n[a][n[a].length-1];)n[a].pop();0!==n[a].length||i||delete n[a],0!==n[s[0]].length||i||(delete n[s[0]],delete o[s[0]],delete r[s[0]])}else console.log("wtf",s)}function g(e,t,r,n,o,i){var a=r,l=s.MD[e]||u[n];return"box"===l&&(a*=i[p[n]]||i.x,l="px"),"bw"===l&&(a*=i.x,l="px"),"wh"===l&&(a*=i.y,l="px"),"bz"===l&&(a*=i.z,l="px"),"deg"===l&&(a%=360),l?(0,s.$U)(a)+l:(0,s.$U)(a)}function h(e,t,r,n,o){for(var i,a,s,l,c,u,p="",f=0,d=0;f<n[e].length;f++)for(a in i=n[e][f])if(i.hasOwnProperty(a)){for(l=e+"_"+f+"_"+a,u="",d=0,s=0;s<n[l].length;s++)n[l][s]&&(c=g(s,0,t[l+"_"+s],a,0,o),d&&"-"===c[0]?c=" - "+c.substr(1):d&&(c=" + "+c),u+=c,d++);d>1&&(u="calc("+u+")"),d>0&&(p+=a+"("+(u||"0")+") ")}r.transform=p}function v(e,t,r,n,o,i,l,c){var p=!!a().string(r)&&r.match(s.FK),d=p&&p[2]||u[t],g=s.MD.indexOf(d),v=-1!==g&&e+"_"+g||e;return i[v]=f[t]||0,o[e][g]=o[e][g]||0,c&&c[g]?n[v]+=p?parseFloat(p[1]):parseFloat(r):(!l&&o[e][g]++,n[v]=p?parseFloat(p[1]):parseFloat(r),c&&(c[g]=!0)),h}var m=function(e,t,r,n,o,i,s){if(n[e]=n[e]||[],!a().array(t)&&!a().object(t))return console.warn("React-Voodoo: Ignore unexpected value ",e,":",t," on ",r),h;a().array(t)||(t=[t]);for(var l,u,p,f,d,g,m,y=0;y<t.length;y++){for(u in l=t[y],p=s?{}:c({},n[e][y]||{}),l)if(l.hasOwnProperty(u))if(f=l[u],m={},d=e+"_"+y+"_"+u,p[u]=p[u]||n[e][y]&&n[e][y][u]||0,!i&&p[u]++,n[d]=n[d]||[],a().array(f))for(g=0;g<f.length;g++)v(d,u,f[g]||0,r,n,o,i,m);else v(d,u,f||0,r,n,o,i);n[e][y]=s?c(c(c({},p),n[e][y]||{}),p):p}return h}},93:(e,t,r)=>{"use strict";function n(e,t,r,n,o,i){--n[e]||i||(delete t[e],delete n[e],delete o[e],delete r[e])}function o(e,t,r,n,o){r[e]=~~t[e]}r.r(t),r.d(t,{demux:()=>o,mux:()=>i,release:()=>n});var i=function(e,t,r,n,i,a){return i[e]=0,r[e]=~~t,n[e]=n[e]||0,!a&&n[e]++,o}},142:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>l,mux:()=>c,release:()=>s});const n=__webpack_require__(/*! color-rgba */ "./node_modules/color-rgba/index.js");var o=r.n(n),i=r(767),a=r.n(i);function s(e,t,r,n,o,i){var a=e.split("_"),s=a.slice(0,a.length-1).join("_");--n[e]||i||(delete t[e],delete n[e]),!s||--n[s]||i||(delete t[e],delete n[e])}function l(e,t,r,n){var o="rgba("+Math.min(255,t[e+"_r"])+", "+Math.min(255,t[e+"_g"])+", "+Math.min(255,t[e+"_b"])+", "+Math.min(1,t[e+"_a"])+")";return r?r[e]=o:o}function c(e,t,r,n,i,s){var c=a().string(t)?o()(t):t&&[t.r||0,t.g||0,t.b||0,t.a||0];return n[e]=n[e]||0,n[e+"_r"]=n[e+"_r"]||0,n[e+"_g"]=n[e+"_g"]||0,n[e+"_b"]=n[e+"_b"]||0,n[e+"_a"]=n[e+"_a"]||0,s||(n[e]+=4,n[e+"_r"]++,n[e+"_g"]++,n[e+"_b"]++,n[e+"_a"]++),r[e+"_r"]=c[0],r[e+"_g"]=c[1],r[e+"_b"]=c[2],r[e+"_a"]=c[3],i[e]=0,i[e+"_r"]=0,i[e+"_g"]=0,i[e+"_b"]=0,i[e+"_a"]=1,l}},173:e=>{e.exports={walknSetExport:function(e,t,r){var n,o,i=t.split("/"),a=e;for(n=0;n<i.length-1;)a=a[i[n]]=a[i[n]]||{},n++;o=1===Object.keys(r).length&&r.default||r,a[i[n]]?(a[i[n]].__esModule||Object.assign(o,a[i[n]]),a[i[n]]=o):a[i[n]]=o}}},213:e=>{"use strict";e.exports=__webpack_require__(/*! @babel/runtime/helpers/defineProperty */ "./node_modules/@babel/runtime/helpers/defineProperty.js")},275:(e,t,r)=>{"use strict";r.d(t,{Bw:()=>l,CG:()=>p,ai:()=>u,bz:()=>i,lc:()=>a,m3:()=>c,yW:()=>s});var n={},o=r(173).walknSetExport;o(n,"any",r(360)),o(n,"bool",r(308)),o(n,"color",r(142)),o(n,"multi",r(643)),o(n,"ratio",r(361)),o(n,"length",r(616)),o(n,"number",r(93)),o(n,"shadow",r(936));var i=n.any,a=n.bool,s=n.color,l=n.length,c=n.multi,u=n.number,p=n.ratio},308:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>i,mux:()=>a,release:()=>o});var n={opacity:1};function o(e,t,r,n,o,i){--n[e]||i||(delete t[e],delete n[e],delete o[e],delete r[e])}function i(e,t,r,n,o){var i=!!t[e];return r?r[e]=i:i}var a=function(e,t,r,o,a,s){return a[e]=n[e]||0,r[e]=!1===t?0:1,o[e]=o[e]||0,!s&&o[e]++,i}},360:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>p,demuxOne:()=>u,mux:()=>g,muxOne:()=>d,muxer:()=>f,release:()=>c});var n=r(767),o=r.n(n),i=r(597),a={left:"px",right:"px",top:"px",bottom:"px",width:"px",height:"px",perspective:"px"},s={left:"x",right:"x",top:"y",bottom:"y",width:"x",height:"y"},l={opacity:0};function c(e,t,r,n,o,i){var a=e.split("_");if(2===a.length){if(--n[a[0]][a[1]]||i||delete t[e],!i)for(;n[a[0]].length&&!n[a[0]][n[a[0]].length-1];)n[a[0]].pop();0!==n[a[0]].length||i||(delete n[a[0]],delete o[a[0]],r&&delete r[a[0]])}else--n[e].count||i||(delete t[e],delete n[e],delete o[e],delete r[e])}function u(e,t,r,n,o){var l=t,c=i.MD[e]||a[r]||"px";return"box"===c&&(l*=o[s[r]]||o.x,c="px"),"bw"===c&&(l*=o.x,c="px"),"bh"===c&&(l*=o.y,c="px"),"bz"===c&&(l*=o.z,c="px"),c?(0,i.$U)(l)+c:(0,i.$U)(l)}function p(e,t,r,n,o,i){var a,s,l,c=0;if(a="",n[e].isString)return r[e]=n[e].value[Math.round(t[e])];for(s=0;s<n[e].length;s++)n[e][s]&&(t[l=e+"_"+s]<0?a+=(c?" - ":"-")+u(s,-t[l],i||e,0,o):a+=(c?" + ":"")+u(s,t[l],i||e,0,o),c++);return c>1&&(a="calc("+a+")"),r?r[e]=a:a}function f(e,t,r,n,i,a){n[e]=n[e]||[];var s=[];if(o().array(t))for(var l=0;l<t.length;l++)d(e,t[l]||0,r,n,i,a,s);else d(e,t||0,r,n,i,a);return p}function d(e,t,r,n,s,c,u){var f=!!o().string(t)&&t.match(i.FK),d=f&&f[2]||a[e]||"px",g=i.MD.indexOf(d),h=-1!==g&&e+"_"+g||e;return!f&&o().string(t)?(s[e]=l[e]||0,n[e].count=n[e].count||0,n[e].count++,n[e].isString=!0,n[e].value=n[e].value||[],!n[e].value.includes(t)&&n[e].value.push(t),r[e]=n[e].value.indexOf(t),p):(s[h]=l[e]||0,n[e][g]=n[e][g]||0,u&&u[g]?r[h]+=f?parseFloat(f[1]):parseFloat(t):(!c&&n[e][g]++,r[h]=f?parseFloat(f[1]):parseFloat(t),u&&(u[g]=!0)),p)}var g=f},361:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>a,mux:()=>s,release:()=>i});var n=r(597),o={opacity:1};function i(e,t,r,n,o,i){--n[e]||i||(delete t[e],delete n[e],delete o[e],delete r[e])}function a(e,t,r,o,i){r[e]=Math.min(1,Math.max(0,(0,n.$U)(t[e])))}var s=function(e,t,r,n,i,s){return i[e]=o[e]||0,r[e]=t,n[e]=n[e]||0,!s&&n[e]++,a}},409:e=>{"use strict";e.exports=__webpack_require__(/*! @babel/runtime/helpers/slicedToArray */ "./node_modules/@babel/runtime/helpers/slicedToArray.js")},597:(e,t,r)=>{"use strict";r.d(t,{$U:()=>a,FK:()=>i,J0:()=>l,MD:()=>o,Tl:()=>s,VP:()=>c,xk:()=>n});var n={margin:{properties:["marginTop","marginRight","marginBottom","marginLeft"],multiple:!0},marginBottom:{types:["length"]},marginLeft:{types:["length"]},marginRight:{types:["length"]},marginTop:{types:["length"]},padding:{properties:["paddingTop","paddingRight","paddingBottom","paddingLeft"],multiple:!0},paddingBottom:{types:["length"]},paddingLeft:{types:["length"]},paddingRight:{types:["length"]},paddingTop:{types:["length"]},bottom:{types:["length-percentage-calc"]},left:{types:["length-percentage-calc"]},right:{types:["length-percentage-calc"]},top:{types:["length-percentage-calc"]},zIndex:{types:["integer"]},width:{types:["length-percentage-calc"]},maxWidth:{types:["length-percentage-calc"]},minWidth:{types:["length-percentage-calc"]},height:{types:["length-percentage-calc"]},maxHeight:{types:["length-percentage-calc"]},minHeight:{types:["length-percentage-calc"]},lineHeight:{types:["length"]},verticalAlign:{types:["length"]},visibility:{types:["visibility"]},borderSpacing:{types:["length"],multiple:!0},color:{types:["color"]},opacity:{types:["number"]},backgroundColor:{types:["color"]},backgroundPosition:{types:["length-percentage-calc"],multiple:!0,repeatable:!0},backgroundSize:{types:["length-percentage-calc"],multiple:!0,repeatable:!0},border:{properties:["borderStyle","borderWidth","borderColor"]},borderBottom:{properties:["borderBottomStyle","borderBottomWidth","borderBottomColor"]},borderLeft:{properties:["borderLeftStyle","borderLeftWidth","borderLeftColor"]},borderRight:{properties:["borderRightStyle","borderRightWidth","borderRightColor"]},borderTop:{properties:["borderTopStyle","borderTopWidth","borderTopColor"]},borderColor:{properties:["borderTopColor","borderRightColor","borderBottomColor","borderLeftColor"]},borderWidth:{properties:["borderTopWidth","borderRightWidth","borderBottomWidth","borderLeftWidth"]},borderBottomColor:{types:["color"]},borderLeftColor:{types:["color"]},borderRightColor:{types:["color"]},borderTopColor:{types:["color"]},borderBottomWidth:{types:["length"]},borderLeftWidth:{types:["length"]},borderRightWidth:{types:["length"]},borderTopWidth:{types:["length"]},borderRadius:{properties:["borderTopLeftRadius","borderTopRightRadius","borderBottomRightRadius","borderBottomLeftRadius"]},borderTopLeftRadius:{types:["length-percentage-calc"],multiple:!0},borderTopRightRadius:{types:["length-percentage-calc"],multiple:!0},borderBottomRightRadius:{types:["length-percentage-calc"],multiple:!0},borderBottomLeftRadius:{types:["length-percentage-calc"],multiple:!0},boxShadow:{types:["shadow-list"]},caretColor:{types:["color"]},outline:{properties:["outlineColor","outlineWidth"]},outlineColor:{types:["color"]},outlineWidth:{types:["length"]},outlineOffset:{types:["length"]},flex:{properties:["flexGrow","flexShrink","flexBasis"]},flexGrow:{types:["number"]},flexShrink:{types:["number"]},flexBasis:{types:["length-percentage-calc"]},order:{types:["integer"]},font:{properties:["fontWeight","fontStretch","fontSize","lineHeight"]},fontWeight:{types:["font-weight"]},fontStretch:{types:["font-stretch"]},fontSize:{types:["length"]},fontSizeAdjust:{types:["number"]},gridTemplateColumns:{types:["length-percentage-calc"],multiple:!0},gridTemplateRows:{types:["length-percentage-calc"],multiple:!0},gridTemplate:{properties:["gridTemplateRows","gridTemplateColumns"]},grid:{properties:["gridTemplateRows","gridTemplateColumns"]},gridRowGap:{types:["length-percentage-calc"]},gridColumnGap:{types:["length-percentage-calc"]},gridGap:{properties:["gridRowGap","gridColumnGap"]},clip:{types:["rectangle"]},clipPath:{types:["basic-shape"]},mask:{properties:["maskPosition","maskSize"]},maskPosition:{types:["length-percentage-calc"],multiple:!0,repeatable:!0},maskSize:{types:["length-percentage-calc"],multiple:!0,repeatable:!0},shapeOutside:{types:["basic-shape"]},shapeMargin:{types:["length-percentage-calc"]},shapeImageThreshold:{types:["number"]},scrollPadding:{properties:["scrollPaddingTop","scrollPaddingRight","scrollPaddingBottom","scrollPaddingLeft"]},scrollPaddingTop:{types:["length-percentage-calc"]},scrollPaddingRight:{types:["length-percentage-calc"]},scrollPaddingBottom:{types:["length-percentage-calc"]},scrollPaddingLeft:{types:["length-percentage-calc"]},scrollPaddingBlock:{properties:["scrollPaddingBlockStart","scrollPaddingBlockEnd"]},scrollPaddingBlockStart:{types:["length-percentage-calc"]},scrollPaddingBlockEnd:{types:["length-percentage-calc"]},scrollPaddingInline:{properties:["scrollPaddingInlineStart","scrollPaddingInlineEnd"]},scrollPaddingInlineStart:{types:["length-percentage-calc"]},scrollPaddingInlineEnd:{types:["length-percentage-calc"]},scrollSnapMargin:{properties:["scrollSnapMarginTop","scrollSnapMarginRight","scrollSnapMarginBottom","scrollSnapMarginLeft"]},scrollSnapMarginTop:{types:["length"]},scrollSnapMarginRight:{types:["length"]},scrollSnapMarginBottom:{types:["length"]},scrollSnapMarginLeft:{types:["length"]},scrollSnapMarginBlock:{properties:["scrollSnapMarginBlockStart","scrollSnapMarginBlockEnd"]},scrollSnapMarginBlockStart:{types:["length"]},scrollSnapMarginBlockEnd:{types:["length"]},scrollSnapMarginInline:{properties:["scrollSnapMarginInlineStart","scrollSnapMarginInlineEnd"]},scrollSnapMarginInlineStart:{types:["length"]},scrollSnapMarginInlineEnd:{types:["length"]},textDecoration:{properties:["textDecorationColor"]},textDecorationColor:{types:["color"]},textEmphasis:{properties:["textEmphasisColor"]},textEmphasisColor:{types:["color"]},textShadow:{types:["shadow-list"]},columns:{properties:["columnWidth","columnCount"]},columnWidth:{types:["length"]},columnCount:{types:["integer"]},columnGap:{types:["length-percentage-calc"]},columnRule:{properties:["columnRuleColor","columnRuleWidth"]},columnRuleColor:{types:["color"]},columnRuleWidth:{types:["length"]},letterSpacing:{types:["length"]},tabSize:{types:["length"]},textIndent:{types:["length-percentage-calc"]},wordSpacing:{types:["length-percentage-calc"]},transform:{types:["transform"]},transformOrigin:{types:["length-percentage-calc"],multiple:!0},perspective:{types:["length"]},perspectiveOrigin:{types:["length-percentage-calc"],multiple:!0}},o=["","deg","box","bz","bh","bw","deg","em","ex","%","px","cm","mm","in","pt","pc","ch","rem","vh","vw","vmin","vmax"],i=new RegExp("([+-]?(?:[0-9]*[.])?[0-9]+)\\s*("+["\\w+","deg","bz","bh","bw","cap","ch","deg","em","ic","ex","%","px","cm","mm","in","pt","pc","ch","rem","vh","vw","vmin","vmax"].join("|")+")"),a=function(){return Number((arguments.length>0&&void 0!==arguments[0]?arguments[0]:0).toFixed(3))};function s(e,t){var r=arguments.length>2&&void 0!==arguments[2]?arguments[2]:{},o=n[e],i=o&&o.properties,a=t.split(" ");return o.multiple?i&&i.forEach((function(e,t){r[e]=a[t%a.length]})):i&&i.forEach((function(e,t){a[t]&&(r[e]=a[t])})),r}function l(e){var t=n[e],r=t&&t.properties;return r&&!!r.length}function c(e,t){return!!n[e]}},616:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>p,demuxOne:()=>u,mux:()=>g,muxOne:()=>d,muxer:()=>f,release:()=>c});var n=r(767),o=r.n(n),i=r(597),a={left:"px",right:"px",top:"px",bottom:"px",width:"px",height:"px",perspective:"px"},s={left:"x",right:"x",top:"y",bottom:"y",width:"x",height:"y"},l={opacity:0};function c(e,t,r,n,o,i){var a=e.split("_");if(2===a.length){if(--n[a[0]][a[1]]||i||delete t[e],!i)for(;n[a[0]].length&&!n[a[0]][n[a[0]].length-1];)n[a[0]].pop();0!==n[a[0]].length||i||(delete n[a[0]],delete o[a[0]],r&&delete r[a[0]])}else console.log("wtf",a)}function u(e,t,r,n,o){var l=t,c=i.MD[e]||a[r]||"px";return"box"===c&&(l*=o[s[r]]||o.x,c="px"),"bw"===c&&(l*=o.x,c="px"),"bh"===c&&(l*=o.y,c="px"),"bz"===c&&(l*=o.z,c="px"),c?(0,i.$U)(l)+c:(0,i.$U)(l)}function p(e,t,r,n,o,i){var a,s,l,c=0;for(a="",s=0;s<n[e].length;s++)n[e][s]&&(t[l=e+"_"+s]<0?a+=(c?" - ":"-")+u(s,-t[l],i||e,0,o):a+=(c?" + ":"")+u(s,t[l],i||e,0,o),c++);return c>1&&(a="calc("+a+")"),r?r[e]=a:a}function f(e,t,r,n,i,a){n[e]=n[e]||[];var s=[];if(o().array(t))for(var l=0;l<t.length;l++)d(e,t[l]||0,r,n,i,a,s);else d(e,t||0,r,n,i,a);return p}function d(e,t,r,n,s,c,u){var f=!!o().string(t)&&t.match(i.FK),d=f&&f[2]||a[e]||"px",g=i.MD.indexOf(d),h=-1!==g&&e+"_"+g||e;return s[h]=l[e]||0,n[e][g]=n[e][g]||0,u&&u[g]?r[h]+=f?parseFloat(f[1]):parseFloat(t):(!c&&n[e][g]++,r[h]=f?parseFloat(f[1]):parseFloat(t),u&&(u[g]=!0)),p}var g=f},643:(e,t,r)=>{"use strict";r.r(t),r.d(t,{default:()=>c});var n=r(767),o=r.n(n),i=r(93),a={top:"0%",bottom:"100%",center:"50%",left:"0%",right:"100%"};function s(e,t,r,n,o,a){for(var s=n["_"+e],l="",c={},u=0;u<s;u++)i.demux(e+"_"+u,t,c,n,o,a),l+=c[e+"_"+u]+" ";r[e]=l}function l(e,t,r,n,o,i){e.split("_")}const c=function(e){return{mux:function(t,r,n,l,c,u){var p,f=r.split(" ");l[t]=l[t]||0,u&&l[t]++,l["_"+t]=e;for(var d=0;d<e;d++)p=f[d%f.length],p=o().string(p)&&a[p]||p,i.mux(t+"_"+d,p,n,l,c,u);return s},demux:s,release:l}}},663:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>g,demuxOne:()=>d,mux:()=>v,muxOne:()=>h,release:()=>f});var n=r(213),o=r.n(n),i=r(767),a=r.n(i),s=r(597);function l(e,t){var r=Object.keys(e);if(Object.getOwnPropertySymbols){var n=Object.getOwnPropertySymbols(e);t&&(n=n.filter((function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable}))),r.push.apply(r,n)}return r}function c(e){for(var t=1;t<arguments.length;t++){var r=null!=arguments[t]?arguments[t]:{};t%2?l(Object(r),!0).forEach((function(t){o()(e,t,r[t])})):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(r)):l(Object(r)).forEach((function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(r,t))}))}return e}var u={blur:"px",brightness:"%",contrast:"%",dropShadow:!0,grayscale:"%",hueRotate:"deg",invert:"%",opacity:"%",saturate:"%",sepia:"%"},p={};function f(e,t,r,n,o,i){var a,s=e.split("_");if(4===s.length){if(--n[s[0]][s[1]][s[2]]||i||delete n[s[0]][s[1]][s[2]],!i)for(;n[s[0]].length&&!n[s[0]][n[s[0]].length-1];)n[s[0]].pop();if(--n[a=s[0]+"_"+s[1]+"_"+s[2]][s[3]]||i||(delete n[a][s[3]],delete t[e]),!i)for(;n[a].length&&!n[a][n[a].length-1];)n[a].pop();0!==n[a].length||i||delete n[a],0!==n[s[0]].length||i||(delete n[s[0]],delete o[s[0]],delete r[s[0]])}else console.log("wtf",s)}function d(e,t,r,n,o,i){var a=r,l=s.MD[e]||u[n];return"bw"===l&&(a*=i.x,l="px"),"wh"===l&&(a*=i.y,l="px"),"bz"===l&&(a*=i.z,l="px"),"deg"===l&&(a%=360),l?(0,s.$U)(a)+l:(0,s.$U)(a)}function g(e,t,r,n,o){for(var i,a,s,l,c,u,p="",f=0,g=0;f<n[e].length;f++)for(a in i=n[e][f])if(i.hasOwnProperty(a)){for(l=e+"_"+f+"_"+a,u="",g=0,s=0;s<n[l].length;s++)n[l][s]&&(c=d(s,0,t[l+"_"+s],a,0,o),g&&"-"===c[0]?c=" - "+c.substr(1):g&&(c=" + "+c),u+=c,g++);g>1&&(u="calc("+u+")"),g>0&&(p+=a+"("+(u||"0")+") ")}r.filter=p}function h(e,t,r,n,o,i,l,c){var f=!!a().string(r)&&r.match(s.FK),d=f&&f[2]||u[t],h=s.MD.indexOf(d),v=-1!==h&&e+"_"+h||e;return i[v]=p[t]||0,o[e][h]=o[e][h]||0,c&&c[h]?n[v]+=f?parseFloat(f[1]):parseFloat(r):(!l&&o[e][h]++,n[v]=f?parseFloat(f[1]):parseFloat(r),c&&(c[h]=!0)),g}var v=function(e,t,r,n,o,i,s){n[e]=n[e]||[],a().array(t)||(t=[t]);for(var l,u,p,f,d,v,m,y=0;y<t.length;y++){for(u in l=t[y],p=s?{}:c({},n[e][y]||{}),l)if(l.hasOwnProperty(u))if(f=l[u],m={},d=e+"_"+y+"_"+u,p[u]=p[u]||n[e][y]&&n[e][y][u]||0,!i&&p[u]++,n[d]=n[d]||[],a().array(f))for(v=0;v<f.length;v++)h(d,u,f[v]||0,r,n,o,i,m);else h(d,u,f||0,r,n,o,i);n[e][y]=s?c(c(c({},p),n[e][y]||{}),p):p}return g}},664:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>n.demux,demuxOne:()=>n.demuxOne,mux:()=>n.mux,muxOne:()=>n.muxOne,release:()=>n.release});var n=r(936)},767:e=>{"use strict";e.exports=__webpack_require__(/*! is */ "./node_modules/lpack-react/.layer_modules/node_modules/is/index.js")},936:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>T,demuxOne:()=>S,mux:()=>j,muxOne:()=>D,release:()=>P});var n=r(213),o=r.n(n),i=r(409),a=r.n(i),s=r(767),l=r.n(s),c=r(597),u=r(275);function p(e,t){var r=Object.keys(e);if(Object.getOwnPropertySymbols){var n=Object.getOwnPropertySymbols(e);t&&(n=n.filter((function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable}))),r.push.apply(r,n)}return r}function f(e){for(var t=1;t<arguments.length;t++){var r=null!=arguments[t]?arguments[t]:{};t%2?p(Object(r),!0).forEach((function(t){o()(e,t,r[t])})):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(r)):p(Object(r)).forEach((function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(r,t))}))}return e}var d,g,h,v,m,y,b,x,w=(d=/,(?![^\(]*\))/,g=/\s(?![^(]*\))/,h=/^[0-9]+[a-zA-Z%]+?$/,v=function(e){var t=e.split(g),r=t.includes("inset"),n=t.slice(-1)[0],o=y(n)?void 0:n,i=t.filter((function(e){return"inset"!==e})).filter((function(e){return e!==o})).map(b),s=a()(i,4);return{inset:r,offsetX:s[0],offsetY:s[1],blurRadius:s[2],spreadRadius:s[3],color:o}},m=function(e){var t=e||{},r=t.inset,n=t.offsetX,o=void 0===n?0:n,i=t.offsetY,a=void 0===i?0:i,s=t.blurRadius;return[r?"inset":null,o,a,void 0===s?0:s,t.spreadRadius,t.color].filter((function(e){return null!=e})).map(x).map((function(e){return(""+e).trim()})).join(" ")},y=function(e){return"0"===e||h.test(e)},b=function(e){if(!/px$/.test(e)&&"0"!==e)return e;var t=parseFloat(e);return isNaN(t)?e:t},x=function(e){return"number"==typeof e&&0!==e?e+"px":e},{parse:function(e){return e.split(d).map((function(e){return e.trim()})).map(v)},stringify:function(e){return e.map(m).join(", ")}}),_={perspective:"px"},O={translateX:"x"},R={inset:u.lc,color:u.yW};function P(e,t,r,n,o,i){var a,s=e.split("_");if(s.length>2){if(a=s[0]+"_"+s[1]+"_"+s[2],R[s[2]])return R[s[2]].release(e,t,r,n,o,i),n[a]||--n[s[0]][s[1]][s[2]]||i||delete n[s[0]][s[1]][s[2]],void(0!==n[s[0]].length||i||(delete n[s[0]],delete o[s[0]],delete r[s[0]]));if(--n[s[0]][s[1]][s[2]]||i||delete n[s[0]][s[1]][s[2]],!i)for(;n[s[0]].length&&!n[s[0]][n[s[0]].length-1];)n[s[0]].pop();if(--n[a][s[3]]||i||(delete n[a][s[3]],delete t[e]),!i)for(;n[a].length&&!n[a][n[a].length-1];)n[a].pop();if(0!==n[a].length||i||delete n[a],!i)for(;n[s[0]].length&&!Object.keys(n[s[0]][n[s[0]].length-1]).length;)n[s[0]].pop();0!==n[s[0]].length||i||(delete n[s[0]],delete o[s[0]],delete r[s[0]])}else console.log("wtf",s)}function S(e,t,r,n,o,i){var a=r,s=c.MD[e]||_[n];return"box"===s&&(a*=i[O[n]]||i.x,s="px"),"bw"===s&&(a*=i.x,s="px"),"wh"===s&&(a*=i.y,s="px"),"bz"===s&&(a*=i.z,s="px"),"deg"===s&&(a%=360),s?(0,c.$U)(a)+s:(0,c.$U)(a)}function T(e,t,r,n,o){for(var i,a,s,l,c,u,p=[],f={},d=0,g=0;d<n[e].length;d++){for(a in f={},i=n[e][d])if(i.hasOwnProperty(a)){if(l=e+"_"+d+"_"+a,R[a])u=R[a].demux(l,t,void 0,n,o);else{for(u="",g=0,s=0;s<n[l].length;s++)n[l][s]&&(c=S(s,0,t[l+"_"+s],a,0,o),g&&"-"===c[0]?c=" - "+c.substr(1):g&&(c=" + "+c),u+=c,g++);g>1&&(u="calc("+u+")")}f[a]=u||0}p.push(f)}r[e]=w.stringify(p)}function D(e,t,r,n,o,i,a,s){var u=!!l().string(r)&&r.match(c.FK),p=u&&u[2]||_[t]||"px",f=c.MD.indexOf(p),d=-1!==f&&e+"_"+f||e;return i[d]=0,o[e][f]=o[e][f]||0,s&&s[f]?n[d]+=u?parseFloat(u[1]):parseFloat(r):(!a&&o[e][f]++,n[d]=u?parseFloat(u[1]):parseFloat(r),s&&(s[f]=!0)),T}var j=function(e,t,r,n,o,i,a){n[e]=n[e]||[],l().array(t)||(t=[t]);for(var s,c,u,p,d,g,h,v=0;v<t.length;v++){for(c in s=t[v],l().string(s)&&(s=w.parse(s)[0]),u=a?{}:f({},n[e][v]||{}),s)if(s.hasOwnProperty(c))if(p=s[c],d=e+"_"+v+"_"+c,u[c]=u[c]||n[e][v]&&n[e][v][c]||0,!i&&u[c]++,R[c])R[c].mux(d,p,r,n,o,i,a);else if(h={},n[d]=n[d]||[],l().array(p))for(g=0;g<p.length;g++)D(d,c,p[g]||0,r,n,o,i,h);else D(d,c,p||0,r,n,o,i);n[e][v]=a?f(f(f({},u),n[e][v]||{}),u):u}return T}},954:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>n.demux,demuxOne:()=>n.demuxOne,mux:()=>n.mux,muxOne:()=>n.muxOne,release:()=>n.release});var n=r(936)},959:e=>{"use strict";e.exports=__webpack_require__(/*! d3-ease */ "./node_modules/d3-ease/dist/d3-ease.js")}},t={};function r(n){var o=t[n];if(void 0!==o)return o.exports;var i=t[n]={exports:{}};return e[n](i,i.exports,r),i.exports}r.n=e=>{var t=e&&e.__esModule?()=>e.default:()=>e;return r.d(t,{a:t}),t},r.d=(e,t)=>{for(var n in t)r.o(t,n)&&!r.o(e,n)&&Object.defineProperty(e,n,{enumerable:!0,get:t[n]})},r.o=(e,t)=>Object.prototype.hasOwnProperty.call(e,t),r.r=e=>{"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(e,"__esModule",{value:!0})};var n={};(()=>{"use strict";r.r(n),r.d(n,{Axis:()=>He,Component:()=>dt,Context:()=>P,Draggable:()=>nt,Node:()=>et,child:()=>pt,default:()=>gt,dom:()=>ye,hook:()=>Ve,tools:()=>e,tweener:()=>st,useTweener:()=>ot,useVoodoo:()=>Ve});var e={};r.r(e),r.d(e,{addCss:()=>H,cssAdd:()=>W,cssMult:()=>I,extractCss:()=>Y,offset:()=>L,re_cssValueWithUnit:()=>C,reverse:()=>N,scale:()=>F,shiftTransforms:()=>X,target:()=>U});const t=__webpack_require__(/*! @babel/runtime/helpers/classCallCheck */ "./node_modules/@babel/runtime/helpers/classCallCheck.js");var o=r.n(t);const i=__webpack_require__(/*! @babel/runtime/helpers/createClass */ "./node_modules/@babel/runtime/helpers/createClass.js");var a=r.n(i);const s=__webpack_require__(/*! @babel/runtime/helpers/possibleConstructorReturn */ "./node_modules/@babel/runtime/helpers/possibleConstructorReturn.js");var l=r.n(s);const c=__webpack_require__(/*! @babel/runtime/helpers/getPrototypeOf */ "./node_modules/@babel/runtime/helpers/getPrototypeOf.js");var u=r.n(c);const p=__webpack_require__(/*! @babel/runtime/helpers/inherits */ "./node_modules/@babel/runtime/helpers/inherits.js");var f=r.n(p);const d=__webpack_require__(/*! react */ "./node_modules/lpack-react/.layer_modules/node_modules/react/index.js");var g=r.n(d),h=r(409),v=r.n(h);const m=__webpack_require__(/*! fast-deep-equal */ "./node_modules/fast-deep-equal/index.js");var y=r.n(m);const b=__webpack_require__(/*! @babel/runtime/helpers/extends */ "./node_modules/@babel/runtime/helpers/extends.js");var x=r.n(b);const w=__webpack_require__(/*! @babel/runtime/helpers/objectWithoutProperties */ "./node_modules/@babel/runtime/helpers/objectWithoutProperties.js");var _=r.n(w),O=r(767),R=r.n(O);const P=g().createContext(null),S=__webpack_require__(/*! @babel/runtime/helpers/toConsumableArray */ "./node_modules/@babel/runtime/helpers/toConsumableArray.js");var T=r.n(S);const D=__webpack_require__(/*! @babel/runtime/helpers/get */ "./node_modules/@babel/runtime/helpers/get.js");var j=r.n(D),k=r(213),E=r.n(k),B=r(959);function M(e,t){var r=Object.keys(e);if(Object.getOwnPropertySymbols){var n=Object.getOwnPropertySymbols(e);t&&(n=n.filter((function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable}))),r.push.apply(r,n)}return r}function A(e){for(var t=1;t<arguments.length;t++){var r=null!=arguments[t]?arguments[t]:{};t%2?M(Object(r),!0).forEach((function(t){E()(e,t,r[t])})):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(r)):M(Object(r)).forEach((function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(r,t))}))}return e}__webpack_require__(/*! react-dom */ "./node_modules/lpack-react/.layer_modules/node_modules/react-dom/index.js");var C=new RegExp("([+-]?(?:[0-9]*[.])?[0-9]+)\\s*("+["box","bz","bh","bw","em","ex","%","px","cm","mm","in","pt","pc","ch","rem","vh","vw","vmin","vmax"].join("|")+")");function W(e,t){R().array(e)||(e=[e]),R().array(t)||(t=[t]);var r,n=e.map((function(e){return e&&e.match&&e.match(C)||[,e||0,"px"]})),o=t.map((function(e){return e&&e.match&&e.match(C)||[,e||0,"px"]})),i={},a=[];for(r=0;r<n.length;)i[n[r][2]]=i[n[r][2]]||0,i[n[r][2]]+=parseFloat(n[r][1]),r++;for(r=0;r<o.length;)i[o[r][2]]=i[o[r][2]]||0,i[o[r][2]]+=parseFloat(o[r][1]),r++;Object.keys(i).forEach((function(e){return a.push(i[e]+e)}));for(var s=arguments.length,l=new Array(s>2?s-2:0),c=2;c<s;c++)l[c-2]=arguments[c];return l.length?W.apply(void 0,[a].concat(l)):a}function I(e,t){R().array(e)||(e=[e]);var r,n=e.map((function(e){return e&&e.match&&e.match(C)||[,e||0,"px"]})),o={},i=[];for(r=0;r<n.length;)o[n[r][2]]=o[n[r][2]]||1,o[n[r][2]]=parseFloat(n[r][1])*t,r++;return Object.keys(o).forEach((function(e){return i.push(o[e]+e)})),i}function L(e){var t=arguments.length>1&&void 0!==arguments[1]?arguments[1]:0;return(e=R().array(e)?e:e&&[e]||e).map((function(e){return A(A({},e),{},{from:e.from+t})}))}function F(e){var t=arguments.length>1&&void 0!==arguments[1]?arguments[1]:0,r=arguments.length>2?arguments[2]:void 0;e=R().array(e)?e:e&&[e]||e;var n=0;return e.forEach((function(e){n=Math.max(n,e.from+e.duration)})),e=e.map((function(e){return A(A({},e),{},{from:e.from/n*t,duration:e.duration/n*t})})),r?L(e,r):e}function z(e){return R().number(e)?-e:R().object(e)?Object.keys(e).reduce((function(t,r){return t[r]=z(e[r]),t}),{}):R().array(e)?e.map((function(e){return z(e)})):e.split(/(\-?\d+(?:\.\d+)?|\-?\.\d+)/gi).map((function(e,t){return t%2?-parseFloat(e):e})).join("")}function N(e){e=R().array(e)?e:e&&[e]||e;var t=0;return e.forEach((function(e){t=Math.max(t,e.from+e.duration)})),e.map((function(e){return A(A({},e),{},{from:t-(e.from+e.duration)},e.apply?{apply:z(e.apply)}:void 0)}))}var V={transform:!0,filter:!0,textShadow:!0,boxShadow:!0};function H(e){for(var t=arguments.length,r=new Array(t>1?t-1:0),n=1;n<t;n++)r[n-1]=arguments[n];var o=r.shift();for(var i in o){var a;o.hasOwnProperty(i)&&(V[i]?(e[i]||(e[i]=[]),R().array(o[i])?H(e[i],o[i]):H(e[i],[o[i]])):R().array(o[i])?(e[i]||(e[i]=[]),R().array(e[i])?(a=e[i]).push.apply(a,T()(o[i])):e[i]=[].concat(T()(o[i]),[e[i]])):e[i]?R().object(e[i])&&R().object(o[i])?H(e[i],o[i]):e[i]=q(e[i],o[i]):R().object(o[i])?e[i]=A({},o[i]):e[i]=o[i])}return r.length&&H.apply(void 0,[e].concat(r))||e}function q(e,t){if(!e)return t;if(!t)return e;var r=(""+e).split(/(\-?\d+(?:\.\d+)?|\-?\.\d+)/gi),n=(""+t).split(/(\-?\d+(?:\.\d+)?|\-?\.\d+)/gi),o=r.map((function(e,t){return t%2?parseFloat(e)+parseFloat(n[t]||0):e})).filter((function(e){return""!==e}));return 1===o.length?parseInt(o[0]):o.join("")}function Y(e,t){var r={};return(e=R().array(e)?e:e&&[e]||e).forEach((function(e){H(r,e.apply)})),t&&(r=z(r)),r}function U(e,t){return(e=R().array(e)?e:e&&[e]||e).map((function(e){return A(A({},e),{},{target:t})}))}function X(e){var t=arguments.length>1&&void 0!==arguments[1]?arguments[1]:1;return(e=R().array(e)?e:e&&[e]||e).map((function(e){var r=e.apply&&e.apply.transform;if(r){r=R().array(r)?r:[r];for(var n=0;n<t;n++)r.unshift({});e=A(A({},e),{},{apply:A(A({},e.apply),{},{transform:r})})}return e}))}var $=r(597),G={},K=r(173).walknSetExport;K(G,"filter",r(663)),K(G,"boxShadow",r(664)),K(G,"transform",r(49)),K(G,"textShadow",r(954)),K(G,"backgroundColor",r(34));const Z=G;var J=r(275);function Q(e,t){var r=Object.keys(e);if(Object.getOwnPropertySymbols){var n=Object.getOwnPropertySymbols(e);t&&(n=n.filter((function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable}))),r.push.apply(r,n)}return r}function ee(e){for(var t=1;t<arguments.length;t++){var r=null!=arguments[t]?arguments[t]:{};t%2?Q(Object(r),!0).forEach((function(t){E()(e,t,r[t])})):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(r)):Q(Object(r)).forEach((function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(r,t))}))}return e}var te=ee(ee({},Z),{},{height:J.Bw,width:J.Bw,top:J.Bw,left:J.Bw,right:J.Bw,bottom:J.Bw,marginTop:J.Bw,marginLeft:J.Bw,marginRight:J.Bw,marginBottom:J.Bw,paddingTop:J.Bw,paddingLeft:J.Bw,paddingRight:J.Bw,paddingBottom:J.Bw,borderRadius:J.Bw,borderTopColor:J.yW,borderLeftColor:J.yW,borderRightColor:J.yW,borderBottomColor:J.yW,borderTopWidth:J.Bw,borderLeftWidth:J.Bw,borderRightWidth:J.Bw,borderBottomWidth:J.Bw,transformOrigin:(0,J.m3)(2),zIndex:J.ai,opacity:J.CG});function re(e,t,r,n,o,i,a){var s;null===(s=i[t.split("_")[0]])||void 0===s||s.release(t,r,n,o,i,a)}function ne(e,t,r,n,o){Object.keys(r).forEach((function(i){r[i].demux(i,e,t,n,o)}))}function oe(e,t,r,n,o,i,a){var s={};return e&&Object.keys(e).forEach((function(t){te[t]?s[t]=e[t]:(0,$.VP)(t,e[t])&&(0,$.J0)(t)?(0,$.Tl)(t,e[t],s):s[t]=e[t]})),s&&Object.keys(s).forEach((function(l){te[l]?(o[l]=te[l]).mux(l,s[l],t,n,r,i,a):(0,$.VP)(l,e[l])?(o[l]=function(e){var t=$.xk[e],r=t&&t.types;if(!r)return J.bz;for(var n=0;n<r.length;n++)switch(r[n]){case"length":case"length-percentage-calc":return J.Bw;case"number":case"integer":return J.ai;case"color":return J.yW}return J.bz}(l)).mux(l,s[l],t,n,r,i,a):(o[l]=J.bz).mux(l,s[l],t,n,r,i,a)})),{}}function ie(e,t,r,n,o){o=o&&{};var i={},a=e.reduce((function(e,a){var s={};return n[a.target]=n[a.target]||{},t[a.target]=t[a.target]||{},r[a.target]=r[a.target]||{},a.type&&"Tween"!==a.type?e.push(ee({},a)):(!o&&H(i[a.target]=i[a.target]||{},a.apply),oe(a.apply,s,t[a.target],r[a.target],n[a.target],!0),e.push(ee(ee({},a),{},{apply:s}))),e}),[]);return!o&&Object.keys(i).forEach((function(e){return oe(i[e],{},{},r[e],n[e])})),a}const ae=__webpack_require__(/*! tween-axis */ "./node_modules/tween-axis/dist/index.js");var se=r.n(ae);function le(){try{var e=!Boolean.prototype.valueOf.call(Reflect.construct(Boolean,[],(function(){})))}catch(e){}return(le=function(){return!!e})()}var ce,ue,pe=[],fe=function(e){function t(e,r){var n,i,a;if(o()(this,t),pe.length){var s=pe.pop();return s.scope=r,R().array(e)?(s.localLength=1,s.mount(e,r)):e.Axis&&s.mount(e.Axis,r),l()(void 0,s)}return n=this,i=t,a=arguments,i=u()(i),l()(n,le()?Reflect.construct(i,a||[],u()(n).constructor):i.apply(n,a))}return f()(t,e),a()(t,[{key:"destroy",value:function(){this.scope=void 0,this.__marks.length=0,this.__marksLength.length=0,this.__marksKeys.length=0,this.__processors.length=0,this.__config.length=0,this.__activeProcess.length=0,this.__activeProcess.length=0,this.__outgoing.length=0,this.__incoming.length=0,this.__cPos=0,this.duration=0,this.__cIndex=0,this.__cMaxKey=1,pe.push(this)}}])}(se()),de=r(767),ge="undefined"!=typeof window,he=(ge&&(ue=" -webkit- -moz- -o- -ms- ".split(" "),!!("ontouchstart"in window||window.DocumentTouch&&document instanceof DocumentTouch)||(ce=["(",ue.join("touch-enabled),("),"heartz",")"].join(""),window.matchMedia&&window.matchMedia(ce).matches)),ge?{prefix:/webkit/i.test(navigator.appVersion)?"webkit":/firefox/i.test(navigator.userAgent)?"Moz":/trident/i.test(navigator.userAgent)?"ms":"opera"in window?"O":"",dashedPrefix:/webkit/i.test(navigator.appVersion)?"-webkit-":/firefox/i.test(navigator.userAgent)?"-moz-":/trident/i.test(navigator.userAgent)?"-ms-":"opera"in window?"-o-":""}:{prefix:"",dashedPrefix:""}),ve={onPageHided:[],onPageShown:[],dragging:[],dragEnabled:[],dragEnabledDesc:[],fingers:{},nbFingers:0,dragstartAnywhere:function(e){var t,r,n,o=ve,i=o.dragEnabled.indexOf(this),a=[];if(-1!==i){o.nbFingers||(me.addEvent(document,{touchmove:o.dragAnywhere,mousemove:o.dragAnywhere,touchend:o.dropAnywhere,mouseup:o.dropAnywhere}),me.addEvent(this,{click:o.dropWithoutClick},null,null,null,!0)),e.changedTouches&&e.changedTouches.length?a=e.changedTouches:a.push(e);for(var s=0,l=a.length;s<l;s++)if(r=a[s],!(n=o.dragEnabledDesc[i]).nbFingers)for(o.nbFingers++,o.fingers[r.identifier]=o.fingers[r.identifier]||[],o.fingers[r.identifier].push(n),n.nbFingers++,n._startPos.x="MS"==he.prefix?r.x:r.pageX,n._startPos.y="MS"==he.prefix?r.y:r.pageY,n._startTs=e.timeStamp,n._lastPos.x="MS"==he.prefix?r.x:r.pageX,n._lastPos.y="MS"==he.prefix?r.y:r.pageY,t=0;t<n.dragstart.length;t++)n.dragstart[t][0].call(n.dragstart[t][1]||this,e,r,n)}},dragAnywhere:function(e){var t,r,n,o=this,i=ve,a=[];ve.dragging[0],e.changedTouches&&e.changedTouches.length?a=e.changedTouches:a.push(e);for(var s=0,l=a.length;s<l;s++)r=a[s],i.fingers[r.identifier],i.fingers[r.identifier]&&i.fingers[r.identifier].forEach((function(i){if(n)return i._lastPos.x=i._startPos.x="MS"==he.prefix?r.x:r.pageX,void(i._lastPos.y=i._startPos.y="MS"==he.prefix?r.y:r.pageY);for(i._lastPos.x="MS"==he.prefix?r.x:r.pageX,i._lastPos.y="MS"==he.prefix?r.y:r.pageY,t=0;t<i.drag.length;t++)n=!1===i.drag[t][0].call(i.drag[t][1]||o,e,r,i)}))},dropWithoutClick:function(e){ve.preventNextClick&&(e.preventDefault(),e.stopPropagation(),e.stopImmediatePropagation(),ve.preventNextClick=!1),me.removeEvent(this,{click:this.dropWithoutClick})},dropAnywhere:function(e){var t,r,n,o=this,i=ve,a=[];e.changedTouches&&e.changedTouches.length?a=e.changedTouches:a.push(e);for(var s=0,l=a.length;s<l;s++)r=a[s],i.nbFingers--,i.fingers[r.identifier]&&i.fingers[r.identifier].forEach((function(i){for(i.nbFingers--,n=n||i.mouseDrag&&e.timeStamp-i._startTs>250,i._lastPos.x="MS"==he.prefix?r.x:r.pageX,i._lastPos.y="MS"==he.prefix?r.y:r.pageY,t=0;t<i.dropped.length;t++)i.dropped[t][0].call(i.dropped[t][1]||o,e,r,i)})),i.fingers[r.identifier]=null;n&&(i.preventNextClick=!0),i.nbFingers||me.removeEvent(document,{touchmove:i.dragAnywhere,mousemove:i.dragAnywhere,touchend:i.dropAnywhere,mouseup:i.dropAnywhere})},getDraggable:function(e,t,r){var n,o=this.dragEnabled.indexOf(e);return-1===o?(this.dragEnabled.push(e),this.dragEnabledDesc.push(n={mouseDrag:t,touchDrag:r,nbFingers:0,locks:0,_startPos:{x:0,y:0},_lastPos:{x:0,y:0},dragstart:[],drag:[],dragEnd:[],dropped:[]}),me.addEvent(e,{mousedown:t&&this.dragstartAnywhere,touchstart:r&&this.dragstartAnywhere},null,null,null,!0)):n=this.dragEnabledDesc[o],n},freeDraggable:function(e){var t=this.dragEnabled.indexOf(e);-1!==t&&(this.dragEnabled.splice(t,1),this.dragEnabledDesc.splice(t,1),me.removeEvent(e,{mousedown:this.dragstartAnywhere,touchstart:this.dragstartAnywhere}))},addEvent:function(e,t,r,n){e.addEventListener?e.addEventListener(t,r,n):e.attachEvent&&e.attachEvent("on"+t,r.related=function(t){return r.call(e,t)})},removeEvent:function(e,t,r,n){e.removeEventListener?e.removeEventListener(t,r,n):e.attachEvent&&e.detachEvent("on"+t,r.related)},rmDragFn:function(e,t,r){for(var n=0,o=e.length;n<o;n++)if(e[n][0]===t)return e.splice(n,1);console.warn("Rm event : Listener not found !!")}},me={addEvent:function(e,t,r,n){var o=!(arguments.length>4&&void 0!==arguments[4])||arguments[4],i=arguments.length>5?arguments[5]:void 0;if(de.object(t))for(var a in t)t.hasOwnProperty(a)&&t[a]&&this.addEvent(e,a,t[a],n,o,i);else"dragstart"===t?ve.getDraggable(e,n,o).dragstart.push([r]):"drag"===t?ve.getDraggable(e,n,o).drag.push([r]):"dropped"===t?ve.getDraggable(e,n,o).dropped.push([r]):e.addEventListener?e.addEventListener(t,r,{passive:!1}):e.attachEvent&&e.attachEvent("on"+t,r.related=function(t){return r.call(e,t)})},removeEvent:function(e,t,r,n,o){var i;if(de.object(t))for(var a in t)t.hasOwnProperty(a)&&this.removeEvent(e,a,t[a],n);else/^(drag|drop)/.test(t)?(i=ve.getDraggable(e),ve.rmDragFn(i[t],r,n),i.dragstart.length||i.drag.length||i.dragEnd.length||i.dropped.length||ve.freeDraggable(e)):e.removeEventListener?e.removeEventListener(t,r,o):e.attachEvent&&e.detachEvent("on"+t,r.related)},offset:function(e){for(var t={top:0,left:0,width:e.offsetWidth,height:e.offsetHeight};e;)t.top=t.top+parseInt(e.offsetTop),t.left=t.left+parseInt(e.offsetLeft),e=e.offsetParent;return t},findReactParents:function(e){var t,r=[e];for(var n in e)if(n.startsWith("__reactInternalInstance$")||n.startsWith("__reactFiber$")){for(t=e[n];t.return;)t.stateNode&&!r.includes(t.stateNode)&&r.push(t.stateNode),t=t.return;return r}return e.parentNode&&this.findReactParents(e.parentNode)}};const ye=me;function be(e,t){var r=Object.keys(e);if(Object.getOwnPropertySymbols){var n=Object.getOwnPropertySymbols(e);t&&(n=n.filter((function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable}))),r.push.apply(r,n)}return r}function xe(e){for(var t=1;t<arguments.length;t++){var r=null!=arguments[t]?arguments[t]:{};t%2?be(Object(r),!0).forEach((function(t){E()(e,t,r[t])})):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(r)):be(Object(r)).forEach((function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(r,t))}))}return e}var we=r(767),_e=r(959),Oe=function(e){return"number"==typeof e?e?e<0?-1:1:e==e?e:NaN:NaN},Re=Math.abs,Pe=Math.floor,Se=(Math.round,Math.min),Te=Math.max,De=function(){return(arguments.length>0&&void 0!==arguments[0]?arguments[0]:0).toFixed(3)},je=function(){return a()((function e(t){o()(this,e);var r=this._={};r.conf=xe(xe({},this.constructor.config),t),this.active=!1,r.pos=t.value||0,r.refFPS=16,r.min=t.min||0,r.max=t.max||0,r.currentStop=0,r.lastInertiaPos=0,r.stops=r.conf.stops,r.disabled=r.conf.disabled,r.wayPoints=r.conf.wayPoints,r.inertiaFn=_e.easePolyOut,r.targetWayPointIndex=0,this._detectCurrentSnap()}),[{key:"updateConf",value:function(e){var t=this._;t.min=e.min||0,t.max=e.max||0,t.stops=e.stops,t.disabled=e.disabled,t.wayPoints=e.wayPoints,t.conf.willStop=e.willStop,t.conf.willSnap=e.willSnap,t.conf.onStop=e.onStop,t.conf.onSnap=e.onSnap,t.conf.shouldLoop=e.shouldLoop}},{key:"startMove",value:function(){var e=this._;e.baseTS=e.startTS=Date.now()/1e3,e.lastVelocity=e.lastIVelocity=0,e.lastAccel=0,e.posDiff=0,e.loopsDiff=0,this.active=!0,this.holding=!0,e.inertia=!1}},{key:"hold",value:function(e){var t,r=this._,n=void 0!==r.lastHoldPos?e-r.lastHoldPos:0,o=Date.now()/1e3,i=o-r.baseTS,a=e,s=n/i;if(r.lastHoldPos=e,r.lastBaseTs||(r.lastBasePos=e,r.lastBaseTs=r.baseTS),i<.003||((s<=0&&r.lastVelocity>0||s>=0&&r.lastVelocity<0||Re(s)<Re(.2*r.lastVelocity))&&o-r.lastBaseTs>.15?(r.lastBasePos=e,r.lastBaseTs=o,r.lastVelocity=0,r.lastIVelocity=0,r.baseTS=o,r.targetDist=0,r.lastInertiaPos=0):s<=0&&r.lastVelocity>0||s>=0&&r.lastVelocity<0||Re(s)<Re(.2*r.lastVelocity)||(r.lastIVelocity=s,r.lastVelocity=(a-r.lastBasePos)/(o-r.lastBaseTs),r.baseTS=o,r.targetDist=0,r.lastInertiaPos=0,r.targetWayPoint=void 0,r.targetWayPointIndex=void 0)),r.conf.bounds&&(a>r.max?a=r.max:a<r.min&&(a=r.min)),r.conf.shouldLoop)for(;t=r.conf.shouldLoop(a,n);)a+=t;r.pos=a}},{key:"release",value:function(){var e,t,r=this._;Oe(r.lastVelocity),this.holding=!1,function(e){var t=Oe(e.lastVelocity);e.disabled?(e.loopsTarget=0,e.loopsVelSum=0,e.targetDist=0,e.targetDuration=0):(e.loopsTarget=Pe(Math.log(.05/Re(e.lastVelocity))/Math.log(.9)),e.loopsVelSum=(Math.pow(.9,e.loopsTarget)-Re(e.lastVelocity))/(.9-1),e.targetDist=e.loopsVelSum*e.refFPS*t/1e3||0,e.targetDuration=Re(e.loopsTarget*e.refFPS*t)||0)}(r),r.lastHoldPos=void 0,r.lastBasePos=void 0,r.lastBaseTs=void 0,r.holding=!1,r.conf.bounds&&r.conf.snapToBounds&&(r.pos+r.targetDist>r.max?(r.targetDist=r.max-r.pos,r.targetDuration=Re(10*r.targetDist)):r.pos+r.targetDist<r.min&&(r.targetDist=r.min-r.pos,r.targetDuration=Re(10*r.targetDist))),r.targetDuration||(r.targetDuration=50),this.active=!0,r.inertia=!0,r.lastInertiaPos=0,r.inertiaStartTm=r.inertiaLastTm=Date.now(),this._doSnap(null,500),null===(e=(t=r.conf).willEnd)||void 0===e||e.call(t,r.targetDist+r.pos,r.targetDist,r.targetDuration)}},{key:"update",value:function(){var e,t,r=arguments.length>0&&void 0!==arguments[0]?arguments[0]:Date.now(),n=this._,o=n.inertiaFn((r-n.inertiaStartTm)/n.targetDuration)*n.targetDist;if(!n.inertia)return n.pos;var i=o-n.lastInertiaPos;if(n.lastInertiaPos=o,r-n.inertiaStartTm>=n.targetDuration&&(n.inertia=this.active=!1,n.lastInertiaPos=i=0,n.targetDist=0,n.targetWayPoint&&(i=n.targetWayPoint.at-n.pos,n.currentWayPoint=n.targetWayPoint,n.currentWayPointIndex=n.targetWayPointIndex,n.targetWayPoint=null,n.targetWayPointIndex=null),n.conf.onStop&&n.conf.onStop(n.pos,n.currentWayPoint),n.conf.onSnap&&n.conf.onSnap(n.currentWayPointIndex,n.currentWayPoint)),i=i||0,e=n.pos+i,n.conf.shouldLoop)for(;t=n.conf.shouldLoop(e,i);)e+=t,n.inertia;return n.pos=e,e}},{key:"setPos",value:function(e){var t=this._;if(t.inertia=!1,this.active=!1,t.lastInertiaPos=0,t.targetDist=0,t.inertiaStartTm=0,t.inertiaLastTm=0,t.targetDuration=0,t.conf.shouldLoop){for(var r,n=e;r=t.conf.shouldLoop(n,t.pos-e);)n+=r;e=n}t.pos=e,t.conf.bounds&&(t.pos=Te(t.pos,t.min),t.pos=Se(t.pos,t.max))}},{key:"setWayPoints",value:function(e){this._.wayPoints=e,this._detectCurrentSnap()}},{key:"teleport",value:function(e){var t=this._;if(!t.inertia)return t.pos+=e;t.pos+=e}},{key:"dispatch",value:function(e){var t=arguments.length>1&&void 0!==arguments[1]?arguments[1]:500,r=this._,n=Date.now();this.active=!0,r.inertia&&Oe(e)===Oe(r.targetDist)?(r.targetDist+=e,r.targetDuration+=t/2):(r.inertia=!0,r.lastInertiaPos=0,r.inertiaStartTm=r.inertiaLastTm=n,r.targetDist=e,r.targetDuration=t),r.conf.bounds&&(r.pos+r.targetDist>r.max?(r.targetDist=r.max-r.pos,r.targetDuration=Re(10*r.targetDist)):r.pos+r.targetDist<r.min&&(r.targetDist=r.min-r.pos,r.targetDuration=Re(10*r.targetDist))),this._doSnap(Oe(e),750)}},{key:"_detectCurrentSnap",value:function(){var e,t=this._,r=t.pos;if(t.wayPoints&&t.wayPoints.length)for(e=0;e<t.wayPoints.length;e++)if(De(t.wayPoints[e].at)===De(r))return t.currentWayPoint=t.wayPoints[e],t.currentWayPointIndex=e,e}},{key:"_doSnap",value:function(e){var t,r,n,o,i=arguments.length>1&&void 0!==arguments[1]?arguments[1]:2e3,a=this._,s=a.targetDist+(a.pos-(a.lastInertiaPos||0)),l=0;if(a.wayPoints&&a.wayPoints.length){if(a.conf.shouldLoop)for(;o=a.conf.shouldLoop(s,0);)s+=o,l+=o;for(n=0;n<a.wayPoints.length&&!(a.wayPoints[n].at>s);n++);if(n===a.wayPoints.length?n--:0===n?n=0:(r=(a.wayPoints[n].at-a.wayPoints[n-1].at)/2,r=a.wayPoints[n-1].at+r*((a.wayPoints[n].gravity||1)/(a.wayPoints[n-1].gravity||1)),e?e<0&&n--:s<r&&n--),a.conf.maxJump&&we.number(a.currentWayPointIndex)){var c=n-a.currentWayPointIndex;Re(c)>a.conf.maxJump&&(n=a.currentWayPointIndex+Oe(c)*a.conf.maxJump)}t=a.wayPoints[n].at,a.conf.willSnap&&a.conf.willSnap(n,a.wayPoints[n]),a.lastInertiaPos=a.lastInertiaPos||0,t=t-(a.pos-a.lastInertiaPos)-l,a.targetDuration=Te(50,Se(i,Re(a.targetDuration/a.targetDist*t)))||0,a.targetDist=t,a.targetWayPoint=a.wayPoints[n],a.targetWayPointIndex=n}else t=~~(a.pos-a.lastInertiaPos),a.conf.infinite||(t>a.max?(t=a.max-t,a.targetDuration=Se(i,Re(a.targetDuration/a.targetDist*t)),a.targetDist=t):t<a.min&&(t=a.min-t,a.targetDuration=Se(i,Re(a.targetDuration/a.targetDist*t)),a.targetDist=t))}},{key:"setBounds",value:function(e,t){var r=this._;r.min=e,r.max=t}},{key:"isInbound",value:function(e){var t=this._,r=void 0!==t.lastHoldPos?e-t.lastHoldPos:0,n=(t.targetDist||0)+(t.pos-(t.lastInertiaPos||0))+r;return n>=t.min&&n<=t.max}}])}();function ke(e,t){var r=Object.keys(e);if(Object.getOwnPropertySymbols){var n=Object.getOwnPropertySymbols(e);t&&(n=n.filter((function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable}))),r.push.apply(r,n)}return r}function Ee(e){for(var t=1;t<arguments.length;t++){var r=null!=arguments[t]?arguments[t]:{};t%2?ke(Object(r),!0).forEach((function(t){E()(e,t,r[t])})):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(r)):ke(Object(r)).forEach((function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(r,t))}))}return e}function Be(){try{var e=!Boolean.prototype.valueOf.call(Reflect.construct(Boolean,[],(function(){})))}catch(e){}return(Be=function(){return!!e})()}function Me(e,t,r,n){var o=j()(u()(1&n?e.prototype:e),t,r);return 2&n&&"function"==typeof o?function(e){return o.apply(r,e)}:o}E()(je,"config",{bounds:!0,snapToBounds:!0});var Ae,Ce,We=new Function("try {return this===window;}catch(e){ return false;}")(),Ie=R().array,Le=[],Fe=function e(){var t=0,r=Date.now(),n=r-Ce;for(Ce=r;t<Le.length;t++)Le[t].cpos=Math.min(n+Le[t].cpos,Le[t].duration),Le[t].apply(Le[t].cpos,Le[t].duration),Le[t].cpos==Le[t].duration&&(Le[t].cb&&setTimeout(Le[t].cb),Le.splice(t,1),t--);Le.length?setTimeout(e,16):Ae=!1},ze=function(e){function t(e){var r,n,i,a,s,c,p;o()(this,t),s=this,c=t,p=arguments,c=u()(c),a=l()(s,Be()?Reflect.construct(c,p||[],u()(s).constructor):c.apply(s,p)),E()(a,"axes",{}),E()(a,"_scrollWatcherByAxis",{}),E()(a,"_swap",{}),E()(a,"_updateNodeInertia",(function(){var e,t=a._,r=t.activeInertia.length;a._inertiaRaf&&cancelAnimationFrame(a._inertiaRaf);for(var n=0;r>n;n++)((e=t.activeInertia[n]).inertia.x.active||e.inertia.x.holding)&&(e.target.scrollLeft=~~e.inertia.x.update()),(e.inertia.y.active||e.inertia.y.holding)&&(e.target.scrollTop=~~e.inertia.y.update()),e.inertia.x.active||e.inertia.y.active||e.inertia.x.holding||e.inertia.y.holding||(t.activeInertia.slice(n,1),n--,r--);a._inertiaRaf=0!==r?requestAnimationFrame(a._updateNodeInertia):null}));var f=a._={refs:{},muxByTarget:{}};return f.box={x:100,y:100,z:800},a.__isTweener=!0,f._rafLoop=a._rafLoop.bind(a),f.rootRef=a.props.forwardedRef||g().createRef(),f.options=Ee({maxClickTm:200,maxClickOffset:5},e.tweenerOptions||{}),f.tweenRefCSS={},f.tweenRefs={},f.tweenRefMaps={},f.iMapOrigin={},f.tweenRefInitialData={},f.tweenEnabled=!0,f.tweenRefOrigin={},f.tweenRefOriginCss={},f.muxDataByTarget=f.muxDataByTarget||{},f.tweenRefDemuxed=f.tweenRefDemuxed||{},f.tweenRefTargets=f.tweenRefTargets||[],f.runningAnims=f.runningAnims||[],f.scrollHook=[],f.activeInertia=[],f.defaultAxesPosition=null===(r=e.tweenerOptions)||void 0===r?void 0:r.defaultAxesPosition,null===(n=e.tweenerOptions)||void 0===n||null===(i=n.ref)||void 0===i||i.call(n,a),We&&window.addEventListener("resize",a._.onResize=function(e){var t,r;a._updateBox(),a._updateTweenRefs(),null===(t=f.rootRef)||void 0===t||null===(t=t.current)||void 0===t||null===(r=t.windowDidResize)||void 0===r||r.call(t,e)}),a}return f()(t,e),a()(t,[{key:"tweenRef",value:function(e){var t=arguments.length>1&&void 0!==arguments[1]?arguments[1]:{},r=arguments.length>2&&void 0!==arguments[2]?arguments[2]:{},n=arguments.length>4?arguments[4]:void 0,o=arguments.length>5?arguments[5]:void 0,i=arguments.length>6?arguments[6]:void 0,a=this._,s={},l={};return a.tweenRefs[e]||a.tweenRefTargets.push(e),!a.tweenRefs[e]||!i&&a.iMapOrigin[e]===r&&y()(r,a.iMapOrigin[e])&&a.tweenRefOriginCss[e]===t&&y()(t,a.tweenRefOriginCss[e])?a.tweenRefs[e]?ne(a.tweenRefMaps[e],a.tweenRefCSS[e],a.muxByTarget[e],a.muxDataByTarget[e],a.box):(a.iMapOrigin[e]=r,t=t||{},r=r||{},a.tweenRefs[e]=!0,a.muxByTarget[e]=a.muxByTarget[e]||{},a.muxDataByTarget[e]=a.muxDataByTarget[e]||{},a.tweenRefOriginCss[e]=t,a.tweenRefMaps[e]=a.tweenRefMaps[e]||{},a.tweenRefOrigin[e]?(t=Ee(Ee({},t),oe(r,s,l,a.muxDataByTarget[e],a.muxByTarget[e],!1,!0)),Object.keys(l).forEach((function(t){return a.tweenRefMaps[e][t]=R().number(a.tweenRefMaps[e][t])?a.tweenRefMaps[e][t]-l[t]:0})),Object.keys(s).forEach((function(t){return a.tweenRefMaps[e][t]+=s[t]}))):(t=Ee(Ee({},t),oe(r,s,l,a.muxDataByTarget[e],a.muxByTarget[e])),s=Object.assign({},l,s||{}),Object.keys(s).forEach((function(t){return a.tweenRefMaps[e][t]=(a.tweenRefMaps[e][t]||0)+s[t]}))),a.tweenRefOrigin[e]=Ee({},s),a.tweenRefCSS[e]=t,ne(s=a.tweenRefMaps[e],t,a.muxByTarget[e],a.muxDataByTarget[e],a.box)):(a.iMapOrigin[e]=r,a.tweenRefOriginCss[e]=t,r=r||{},t=Ee(Ee({},t=t||{}),oe(r,s,l,a.muxDataByTarget[e],a.muxByTarget[e],!1,!0)),Object.keys(a.tweenRefOrigin[e]).forEach((function(t){return a.tweenRefMaps[e][t]-=a.tweenRefOrigin[e][t]})),Object.keys(l).forEach((function(t){return a.tweenRefMaps[e][t]=R().number(a.tweenRefMaps[e][t])?a.tweenRefMaps[e][t]:l[t]})),Object.keys(s).forEach((function(t){return a.tweenRefMaps[e][t]+=s[t]})),Object.keys(a.tweenRefOrigin[e]).forEach((function(t){re(0,t,a.tweenRefMaps[e],a.tweenRefCSS[e],a.muxDataByTarget[e],a.muxByTarget[e])})),Object.keys(a.tweenRefCSS[e]).forEach((function(r){!a.tweenRefCSS[e][r]||a.muxByTarget[e][r]||t[r]||delete a.tweenRefCSS[e][r]})),Object.keys(t).forEach((function(r){a.tweenRefCSS[e][r]===t[r]||a.muxByTarget[e][r]||(a.tweenRefCSS[e][r]=t[r])})),a.tweenRefOrigin[e]=Ee({},s),ne(a.tweenRefMaps[e],a.tweenRefCSS[e],a.muxByTarget[e],a.muxDataByTarget[e],a.box),this._updateTweenRef(e,!0)),o?{style:Ee({},a.tweenRefCSS[e])}:{style:Ee({},a.tweenRefCSS[e]),ref:R().function(n)?function(t){return a.refs[e]=n(t)}:n?function(t){return a.refs[e]=n.current=t}:function(t){return a.refs[e]=t}}}},{key:"rmTweenRef",value:function(e){this._.tweenRefs[e]&&(this._.tweenRefTargets.splice(this._.tweenRefTargets.indexOf(e),1),delete this._.tweenRefs[e],delete this._.muxByTarget[e],delete this._.muxDataByTarget[e],delete this._.iMapOrigin[e],delete this._.tweenRefOrigin[e],delete this._.tweenRefCSS[e],delete this._.tweenRefMaps[e],delete this._.refs[e])}},{key:"resetTweenable",value:function(){for(var e=this,t=this._,r=arguments.length,n=new Array(r),o=0;o<r;o++)n[o]=arguments[o];n.forEach((function(r){e.tweenRef(r,t.tweenRefOriginCss[r],t.iMapOrigin[r],null,null,null,!0)})),this._updateTweenRefs()}},{key:"updateRefStyle",value:function(e,t,r){var n,o=this,i=this._;return Ie(e)&&Ie(t)?e.map((function(e,n){return o.updateRefStyle(e,t[n],r)})):Ie(e)?e.map((function(e){return o.updateRefStyle(e,t,r)})):i.tweenRefMaps[e]?(n=oe(t,i.tweenRefMaps[e],{},i.muxDataByTarget[e],i.muxByTarget[e]),Object.assign(i.tweenRefCSS[e],n),Object.assign(i.tweenRefOriginCss[e],n),ne(i.tweenRefMaps[e],i.tweenRefCSS[e],i.muxByTarget[e],i.muxDataByTarget[e],i.box),void this._updateTweenRef(e,!0)):console.warn("React-Voodoo : Can't update styles of an unknown Node id '",e,"'")}},{key:"getTweenableRef",value:function(e){var t;return R().element(this._.refs[e])?this._.refs[e]:null!==(t=this._.refs[e])&&void 0!==t&&null!==(t=t._)&&void 0!==t&&null!==(t=t.rootRef)&&void 0!==t&&t.current&&R().element(this._.refs[e]._.rootRef.current)?this._.refs[e]._.rootRef.current:void(this._.tweenRefs[e]||console.warn("react-voodoo: Can't find voodooNode ",e))}},{key:"getRootNode",value:function(){try{return this._.rootRef&&this._.rootRef.current}catch(e){return this._.rootRef&&this._.rootRef.current}}},{key:"pushAnim",value:function(e,r){var n,o,i=this,a=!(arguments.length>2&&void 0!==arguments[2])||arguments[2],s=this._,l={};if(Ie(e)?n=e:(n=e.anims,e.initial),n instanceof fe||(n=ie(n,l,this._.muxDataByTarget,this._.muxByTarget),n=new fe(n,this._.tweenRefMaps),Object.keys(l).forEach((function(e){return i._.tweenRefMaps[e]&&Object.assign(i._.tweenRefMaps[e],Ee(Ee({},l[e]),i._.tweenRefMaps[e]))||(o=console.warn("react-voodoo : Can't find tween target ",e," in ",t.displayName)||!0)}))),!o)return new Promise((function(e){n.run(i._.tweenRefMaps,(function(){var t=i._.runningAnims.indexOf(n);-1!=t&&i._.runningAnims.splice(t,1),Object.keys(l).forEach((function(e){Object.keys(l[e]).forEach((function(t){re(0,t,s.tweenRefMaps[e],s.tweenRefCSS[e],s.muxDataByTarget[e],s.muxByTarget[e],a)}))})),n.destroy(),e(n)})),i._.runningAnims.push(n),i._.live||(i._.live=!0,requestAnimationFrame(i._._rafLoop=i._._rafLoop||i._rafLoop.bind(i)))})).then((function(e){return r&&r(e)}))}},{key:"applyTweenState",value:function(e,t,r){var n=this,o={},i={};oe(t,o,i,this._.muxDataByTarget[e],this._.muxByTarget[e],!0),Object.keys(o).map((function(t){return n._.tweenRefMaps[e][t]=(!r&&n._.tweenRefMaps[e][t]||i[t])+o[t]}))}},{key:"initAxis",value:function(e,t,r){var n,o,i,a=this,s=t.inertia,l=t.scrollableArea,c=void 0===l?0:l,u=t.scrollableBounds,p=t.scrollableWindow,f=t.defaultPosition,d=t.scrollFirst,g=this._,h=this.axes[e],v=u,m=!r&&h?h.scrollPos:(null===(n=g.defaultAxesPosition)||void 0===n?void 0:n[e])||f||v&&v.min||0,y=Math.max(h&&h.scrollableArea||0,c),b=Math.max(h&&h.scrollableWindow||0,p),x=h?h.targetPos:m,w=h?h.inertia:new je(Ee(Ee({disabled:!s},s||{}),{},{value:m})),_={scrollFirst:d,tweenAxis:h&&h.tweenAxis||[],scrollPos:m,targetPos:x,inertia:w,scrollableWindow:b,scrollableBounds:v,scrollableArea:y,scrollTo:function(t,r,n,o){return a.scrollTo(t,r,e,n,o)}};this.axes[e]=_,!s&&(w._.disabled=!0),s&&w&&!w.active&&(w._.pos=m),s&&w&&w.updateConf(s),w&&v?null===(o=w.setBounds)||void 0===o||o.call(w,v.min,v.max):w&&(null===(i=w.setBounds)||void 0===i||i.call(w,0,y))}},{key:"_getAxis",value:function(){var e=this,t=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"scrollY",r=this._;return this.axes[t]=this.axes[t]||{tweenAxis:[],scrollPos:r.options.initialScrollPos&&r.options.initialScrollPos[t]||0,targetPos:0,scrollableWindow:0,scrollableArea:0,inertia:new je(Ee({value:r.options.initialScrollPos&&r.options.initialScrollPos[t]||0},r.options.axes&&r.options.axes[t]&&r.options.axes[t].inertia||{})),scrollTo:function(r,n,o,i){return e.scrollTo(r,n,t,o,i)}},this.axes[t]}},{key:"getAxisState",value:function(e){var t=this,r=(this._,{});return this.axes&&Object.keys(this.axes).forEach((function(e){return r[e]=t.axes[e].targetPos||t.axes[e].scrollPos})),r}},{key:"getScrollPos",value:function(){var e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"scrollY";return this._,this.axes[e]?this.axes[e].targetPos||this.axes[e].scrollPos:0}},{key:"scrollTo",value:function(e){var t=this,r=arguments.length>1&&void 0!==arguments[1]?arguments[1]:0,n=arguments.length>2&&void 0!==arguments[2]?arguments[2]:"scrollY",o=arguments.length>3?arguments[3]:void 0,i=arguments.length>4?arguments[4]:void 0,a=this._;return We?new Promise((function(s,l){if(t.axes&&t.axes[n]){var c,u,p,f=t.axes[n].targetPos,d=function(e){var r,o;e=~~(1e4*e)/1e4,t.axes[n].targetPos=t.axes[n].scrollPos=e,~~e!==f&&(t.axisDidScroll(~~e,n),null===(r=a.rootRef)||void 0===r||null===(r=r.current)||void 0===r||null===(o=r.componentDidScroll)||void 0===o||o.call(r,~~e,n)),t._updateTweenRefs()};if(e=Math.max(0,e),e=Math.min(e,t.axes[n].scrollableArea||0),t.axes[n].targetPos=e,r)t._runScrollGoTo(n,e,r,B[o],i,d,s);else null===(c=t.axes)||void 0===c||null===(c=c[n])||void 0===c||null===(c=c.inertia)||void 0===c||c.setPos(e),null!==(u=t.axes)&&void 0!==u&&null!==(u=u[n])&&void 0!==u&&null!==(u=u.inertia)&&void 0!==u&&u._&&(e=null===(p=t.axes)||void 0===p||null===(p=p[n])||void 0===p||null===(p=p.inertia)||void 0===p?void 0:p._.pos),t.axes[n].tweenAxis.forEach((function(t){return t.goTo(e,a.tweenRefMaps,!1,i)})),d(e),s();a.live||(a.live=!0,requestAnimationFrame(a._rafLoop))}})).then((function(e){var r;null===(r=t.axes)||void 0===r||null===(r=r[n])||void 0===r||null===(r=r.inertia)||void 0===r||r._detectCurrentSnap()})):(console.warn("React-voodoo : scrollTo can't be used serverside, use Axis defaultPosition prop to set initial axes position"),Promise.resolve())}},{key:"addScrollableAnim",value:function(e){var t,r,n=this,o=arguments.length>1&&void 0!==arguments[1]?arguments[1]:"scrollY",i=this._,a={},s=this._getAxis(o);return Ie(e)?r=e:(r=e.anims,e.length),r instanceof fe||(r=ie(r,a,this._.muxDataByTarget,this._.muxByTarget),(r=new fe(r,i.tweenRefMaps)).initials=a,Object.keys(a).forEach((function(e){i.tweenRefOrigin[e]=i.tweenRefOrigin[e]||{},i.tweenRefMaps[e]=i.tweenRefMaps[e]||{},Object.assign(n._.tweenRefMaps[e],Ee(Ee({},a[e]),n._.tweenRefMaps[e]))}))),s.tweenAxis.push(r),s.scrollPos=s.scrollPos||0,s.scrollableArea=s.scrollableArea||0,s.scrollableArea=Math.max(s.scrollableArea,r.duration),s.scrollableBounds||null===(t=s.inertia)||void 0===t||t.setBounds(0,s.scrollableArea),r.goTo(s.scrollPos,this._.tweenRefMaps,!1,!0),this._updateTweenRefs(),r}},{key:"rmScrollableAnim",value:function(e){var t,r,n=arguments.length>1&&void 0!==arguments[1]?arguments[1]:"scrollY",o=this._,i=this._getAxis(n),a=i.tweenAxis.indexOf(e);-1!==a&&(i.tweenAxis.splice(a,1),i.scrollableArea=Math.max.apply(Math,T()(i.tweenAxis.map((function(e){return e.duration}))).concat([0])),i.scrollableBounds||null===(r=i.inertia)||void 0===r||r.setBounds(0,i.scrollableArea||0),e.goTo(0,this._.tweenRefMaps,!1,!0),Object.keys(e.initials).forEach((function(t){Object.keys(e.initials[t]).forEach((function(e){re(0,e,o.tweenRefMaps[t],o.tweenRefCSS[t],o.muxDataByTarget[t],o.muxByTarget[t])}))})),delete e.initials,e.destroy(),t=!0,this._updateTweenRefs()),!t&&console.warn("react-voodoo: Axis not found : ",n)}},{key:"_runScrollGoTo",value:function(e,t,r){var n=this,o=arguments.length>3&&void 0!==arguments[3]?arguments[3]:function(e){return e},i=arguments.length>4?arguments[4]:void 0,a=arguments.length>5?arguments[5]:void 0,s=arguments.length>6?arguments[6]:void 0,l=this.axes[e].scrollPos,c=t-l;Le.push({apply:function(t,r){var s,u,p,f=l+o(t/r)*c;n._.tweenEnabled&&(null===(s=n.axes)||void 0===s||null===(s=s[e])||void 0===s||null===(s=s.inertia)||void 0===s||s.setPos(f),null!==(u=n.axes)&&void 0!==u&&null!==(u=u[e])&&void 0!==u&&null!==(u=u.inertia)&&void 0!==u&&u._&&(f=null===(p=n.axes)||void 0===p||null===(p=p[e])||void 0===p||null===(p=p.inertia)||void 0===p?void 0:p._.pos),n.axes[e].tweenAxis.forEach((function(e){return e.goTo(f,n._.tweenRefMaps,!1,i)})),a&&a(f))},duration:r,cpos:0,cb:s}),Ae||(Ae=!0,Ce=Date.now(),setTimeout(Fe,16))}},{key:"componentShouldScroll",value:function(){var e,t=this._;return!(t.rootRef&&t.rootRef.current&&t.rootRef.current.componentShouldScroll)||(e=t.rootRef.current).componentShouldScroll.apply(e,arguments)}},{key:"watchAxis",value:function(e,t){var r=this._scrollWatcherByAxis;return r[e]=r[e]||[],r[e].push(t),function(){var n=r[e].indexOf(t);r[e].splice(n,1)}}},{key:"axisDidScroll",value:function(e,t){var r=this._scrollWatcherByAxis[t],n=null==r?void 0:r.length;if(r)for(;n;)r[--n](e)}},{key:"applyInertia",value:function(e,t){var r,n,o=this,i=e.inertia.update(),a=this._;this.axes[t].tweenAxis.forEach((function(e){o.axes[t].targetPos=o.axes[t].scrollPos=i,e.goTo(i,o._.tweenRefMaps)})),null===(r=a.rootRef)||void 0===r||null===(r=r.current)||void 0===r||null===(n=r.componentDidScroll)||void 0===n||n.call(r,i,t),this.axisDidScroll(i,t),this._updateTweenRefs(),e.inertia.active||e.inertia.holding?e.inertiaFrame=setTimeout(this.applyInertia.bind(this,e,t),16):e.inertiaFrame=null}},{key:"isInertiaActive",value:function(){var e=this,t=(this._,!1);return this.axes&&Object.keys(this.axes).forEach((function(r){return t=t||e.axes[r]&&e.axes[r].inertia.active})),t}},{key:"isAxisOut",value:function(e,t,r){this._;var n=this.axes&&this.axes[e],o=r?t:n&&n.scrollPos+t;return o=o&&Math.round(o),!n||(n.scrollableBounds?o<=n.scrollableBounds.min||o>=n.scrollableBounds.max:o<=0||o>=n.scrollableArea)}},{key:"_activateNodeInertia",value:function(e){var t=this._,r=t.activeInertia.findIndex((function(t){return t.target===e}));return-1===r&&(t.activeInertia.push({inertia:{x:new je({max:e.scrollWidth-e.offsetLeft,value:e.scrollLeft}),y:new je({max:e.scrollHeight-e.offsetHeight,value:e.scrollTop})},target:e}),r=t.activeInertia.length-1),t.activeInertia[r].inertia}},{key:"setRootRef",value:function(e){this._.rootRef=e}},{key:"_updateBox",value:function(){var e=this.getRootNode();e&&(this._.box.inited=!0,this._.box.x=e.offsetWidth,this._.box.y=e.offsetHeight)}},{key:"_rafLoop",value:function(){this._updateTweenRefs(),this._.runningAnims.length?requestAnimationFrame(this._._rafLoop):this._.live=!1}},{key:"_updateTweenRefs",value:function(){if(this._.tweenEnabled)for(var e,t=0;t<this._.tweenRefTargets.length;t++)e=this._.tweenRefTargets[t],this._updateTweenRef(e)}},{key:"_updateTweenRef",value:function(e,t){var r,n=this._swap;if(this._.tweenRefCSS[e]&&ne(this._.tweenRefMaps[e],n,this._.muxByTarget[e],this._.muxDataByTarget[e],this._.box),r=this.getTweenableRef(e)){for(var o in this._.tweenRefCSS[e])void 0===n[o]&&(r.style[o]=this._.tweenRefCSS[e][o]);for(var i in n)this._.tweenRefCSS[e].hasOwnProperty(i)&&((t||n[i]!==this._.tweenRefCSS[e][i])&&(r.style[i]=this._.tweenRefCSS[e][i]=n[i]),delete n[i])}return this._.tweenRefCSS[e]}},{key:"componentWillUnmount",value:function(){var e=this;this.getRootNode(),this._.tweenEnabled&&(this._.tweenEnabled=!1,window.removeEventListener("resize",this._.onResize),Object.keys(this.axes).forEach((function(t){e.axes[t].inertiaFrame&&clearTimeout(e.axes[t].inertiaFrame)}))),Me(t,"componentWillUnmount",this,1)&&Me(t,"componentWillUnmount",this,3)(arguments)}},{key:"componentDidMount",value:function(){var e=this,r=this.constructor;this._.rendered=!0,this._.tweenEnabled&&(this._updateBox(),this._updateTweenRefs()),r.scrollableAnim&&(R().array(r.scrollableAnim)?this.addScrollableAnim(r.scrollableAnim):Object.keys(r.scrollableAnim).forEach((function(t){return e.addScrollableAnim(r.scrollableAnim[t],t)}))),Me(t,"componentDidMount",this,1)&&Me(t,"componentDidMount",this,3)(arguments)}},{key:"componentDidUpdate",value:function(e,r){this._.tweenEnabled&&(this._updateBox(),this._updateTweenRefs()),Me(t,"componentDidUpdate",this,1)&&Me(t,"componentDidUpdate",this,3)(arguments)}},{key:"render",value:function(){var e=this,t=this.props,r=t.BaseComponent,n=t.oProps;return g().createElement(P.Consumer,null,(function(t){return e._parentTweener=t,g().createElement(P.Provider,{value:e},g().createElement(r,x()({},n,{ref:e._.rootRef,tweener:e})))}))}}])}(g().Component),Ne=["children"];const Ve=function(e){var t=arguments.length>1&&void 0!==arguments[1]?arguments[1]:"div",r=g().useContext(P),n=g().useRef(),o=g().useRef(),i=g().useMemo((function(){return!0===e||R().string(e)}),[]),a=g().useMemo((function(){if(!0===e)return r;if(R().string(e)){for(var t=r;null!==(o=t)&&void 0!==o&&o._&&t._.options.name!==e;){var o;if(!t._parentTweener){console.warn('react-voodoo: No parent tweener found with option.key === "'+e+'"');break}t=t._parentTweener}return t}var i=new ze({forwardedRef:n,tweenerOptions:e});return i.isMountedFromHook=!0,i._parentTweener=r,i}),[]),s=g().useMemo((function(){return g().forwardRef((function(e,r){var o=e.children,i=_()(e,Ne);return g().createElement(P.Provider,{value:a},g().createElement(t,x()({ref:r?function(e){return r.current=n.current=e}:n},i),o))}))}),[]);return g().useEffect((function(){var e;if(!i&&null!==(e=o.current)&&void 0!==e&&e._)return a.componentDidMount(),o.current=a,function(){var e;null!==(e=o.current)&&void 0!==e&&e._&&(o.current.componentWillUnmount(),o.current=null)}}),[]),g().useEffect((function(){var e;!i&&null!==(e=o.current)&&void 0!==e&&e._&&(o.current._updateBox(),o.current._updateTweenRefs())}),[n.current]),g().useEffect((function(){var e;!i&&null!==(e=o.current)&&void 0!==e&&e._&&(o.current._parentTweener=r)}),[r]),g().useEffect((function(){var t;!i&&null!==(t=o.current)&&void 0!==t&&t._&&(o.current._.options=e,o.current._updateBox(),o.current._updateTweenRefs())}),[e]),g().useMemo((function(){return[a,s]}),[s,a])},He=function(e){e.children;var t=e.id,r=e.axe,n=void 0===r?t:r,o=e.scrollFirst,i=e.bounds,a=e.scrollableWindow,s=e.inertia,l=e.size,c=e.defaultPosition,u=e.items,p=void 0===u?[]:u,f=g().useRef({}).current,d=Ve(!0),h=v()(d,1)[0];return f.previousAxis&&f.previousAxis===n?f.previousInertia&&f.previousInertia===s&&f.previousBounds===i&&f.previousScrollableWindow===a||(f.previousInertia=s,f.previousAxis=n,f.previousBounds=i,f.previousScrollableWindow=a,h.initAxis(n,{inertia:s,size:l,scrollableWindow:a,defaultPosition:c,scrollFirst:o,scrollableBounds:i})):(f.previousAxis=n,f.previousInertia=s,h.initAxis(n,{inertia:s,size:l,scrollableWindow:a,defaultPosition:c,scrollFirst:o,scrollableBounds:i},!0)),f.previousTweener&&f.previousTweener===h?f.previousTweens===p||f.previousTweens&&y()(p,f.previousTweens)||(f.lastTL&&f.previousTweener&&f.previousTweener.rmScrollableAnim(f.lastTL,f.previousAxis),f.lastTL=null,p.length&&(f.lastTL=h.addScrollableAnim(p,n,l)),f.previousTweens=p):(f.previousTweener&&f.lastTL&&f.previousTweener.rmScrollableAnim(f.lastTL,f.previousAxis),p.length&&(f.lastTL=h.addScrollableAnim(p,n,l)),f.previousTweener=h,f.previousTweens=p),g().useEffect((function(){return function(){f.lastTL&&f.previousTweener&&f.previousTweener.rmScrollableAnim(f.lastTL,f.previousAxis),delete f.previousTweener,delete f.previousScrollable}}),[]),g().createElement(g().Fragment,null)},qe=__webpack_require__(/*! shortid */ "./node_modules/lpack-react/.layer_modules/node_modules/shortid/index.js");var Ye=r.n(qe);function Ue(e){return"function"==typeof e&&!(e.prototype&&e.prototype.isReactComponent)}function Xe(e){return function(e){return"function"==typeof e&&!!e.prototype.isReactComponent}(e)||Ue(e)}var $e=["children","id","style","initial","pos","noRef","reset","tweener","isRoot","axes","refProp","tweenLines","tweenAxis"],Ge=["children","className"];function Ke(e,t){var r=Object.keys(e);if(Object.getOwnPropertySymbols){var n=Object.getOwnPropertySymbols(e);t&&(n=n.filter((function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable}))),r.push.apply(r,n)}return r}function Ze(e){for(var t=1;t<arguments.length;t++){var r=null!=arguments[t]?arguments[t]:{};t%2?Ke(Object(r),!0).forEach((function(t){E()(e,t,r[t])})):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(r)):Ke(Object(r)).forEach((function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(r,t))}))}return e}function Je(e,t){return e.map((function(e){return Ze(Ze({},e),{},{target:t})}))}var Qe=g().forwardRef((function(e,t){var r=e.children,n=e.id,o=void 0===n?g().useMemo((function(){return Ye().generate()}),[]):n,i=e.style,a=e.initial,s=e.pos,l=e.noRef,c=(e.reset,e.tweener),u=(e.isRoot,e.axes),p=e.refProp,f=void 0===p?"nodeRef":p,d=e.tweenLines,h=void 0===d?u:d,m=e.tweenAxis,b=void 0===m?h:m,w=_()(e,$e),O=g().useRef({}).current,P=Ve(!0),S=v()(P,1)[0];if(!(S=c||S))return console.error("No Voodoo tweener found in the context, is there any parent ViewBox ?"),g().createElement(g().Fragment,null);var T,D=S.tweenRef(o,r.props&&r.props.style,i||a,s,t,l);g().useEffect((function(){return function(){O._tweenAxisObj&&Object.keys(O._tweenAxisObj).forEach((function(e){return O._currentTweener.rmScrollableAnim(O._tweenAxisObj[e],e)})),O._currentTweener&&(O._currentTweener.rmTweenRef(O.__tweenableId),O._currentTweener.setRootRef(void 0)),delete O._currentTweener,delete O._tweenAxisObj,delete O._previousScrollable}}),[]),(T=O._tweenAxis!==b&&!(O._tweenAxis&&y()(b,O._tweenAxis))||b&&!O._tweenAxis)||O._currentTweener!==S||O._previousScrollable!==b?(O._currentTweener&&T&&O._tweenAxisObj&&Object.keys(O._tweenAxisObj).forEach((function(e){return O._currentTweener.rmScrollableAnim(O._tweenAxisObj[e],e)})),O._currentTweener&&O._currentTweener!==S&&O._currentTweener.rmTweenRef(o),T&&(O._tweenAxis=b,b&&R().array(b)?O._tweenAxisObj={scrollY:S.addScrollableAnim(Je(b,o))}:O._tweenAxisObj=b&&Object.keys(b).reduce((function(e,t){return e[t]=S.addScrollableAnim(Je(b[t],o),t),e}),{}),D=S.tweenRef(o,r.props&&r.props.style,i||a,s,t,l)),D.style=Ze({},S._updateTweenRef(o,!0)),w.hasOwnProperty("isRoot")&&(O._currentTweener&&O._currentTweener.setRootRef(void 0),c.setRootRef(o)),O._currentTweener=S,O._previousScrollable=b):D&&(D.style=Ze({},S._updateTweenRef(o,!0)));var j=g().Children.only(r);return j&&g().isValidElement(j)?(O._lastRef=D,Ue(j.type)?g().createElement(j.type,x()({},w,j.props,D,{ref:void 0},E()({},f,D.ref))):g().createElement(j.type,x()({},w,j.props,D))):(console.error("Invalid voodoo Node child : ",o),g().createElement("div",null,"Invalid"))}));const et=Qe;Qe.div=g().forwardRef((function(e,t){var r=e.children,n=e.className,o=_()(e,Ge);return g().createElement(Qe,x()({},o,{ref:t}),g().createElement("div",{className:n},r))}));var tt=["children","Comp","nodeRef","items","xAxis","yAxis","yBoxRef","xBoxRef","yRef","yHook","xHook","tweener","mouseDrag","touchDrag","button"],rt=g().forwardRef((function(e,t){var r=e.children,n=e.Comp,o=void 0===n?"div":n,i=e.nodeRef,a=(e.items,e.xAxis),s=e.yAxis,l=e.yBoxRef,c=e.xBoxRef,u=(e.yRef,e.yHook),p=e.xHook,f=e.tweener,d=e.mouseDrag,h=void 0!==d&&d,m=e.touchDrag,y=void 0===m||m,b=e.button,w=void 0===b?0:b,O=_()(e,tt),P=g().useRef(),S=g().useRef({root:P,_:{}}).current,T=Ve(!0),D=v()(T,1)[0],j=g().useMemo((function(){return{getScrollableNodes:function(e){for(var t=[],r=S._parentTweener;r;)t.push(r),r=r._parentTweener;return t},_registerScrollListeners:function(){var e,t,r,n,o,i,a,s,l,c=null===(e=S.root)||void 0===e?void 0:e.current,u=S.props,p=u.xAxis,f=u.yAxis,d=u.yHook,g=u.xHook,h=u.mouseDrag,v=u.touchDrag,m=u.tweener,y=u.xBoxRef,b=u.yBoxRef,x=u.button,w=m._;c?(ye.addEvent(c,S._.dragList={dragstart:function(e,r,u){var d,g,h,v;if(!(e instanceof MouseEvent&&e.button!==x))for(o=j.getScrollableNodes(e.target),t=Date.now(),n=0,i=0,a=[],s=null===(d=(null==y?void 0:y.current)||c)||void 0===d?void 0:d.offsetWidth,l=null===(g=(null==b?void 0:b.current)||c)||void 0===g?void 0:g.offsetHeight,v=0;v<o.length;v++){var m,w;(h=o[v])._updateBox(),h.__isTweener&&(p&&(null===(m=h.axes)||void 0===m||m[p]),f&&(null===(w=h.axes)||void 0===w||w[f]),h._updateNodeInertia())}},click:function(e,r,o){e instanceof MouseEvent&&e.button!==x||t&&(t-Date.now()>w.options.maxClickTm||Math.abs(i)>w.options.maxClickOffset||Math.abs(n)>w.options.maxClickOffset)&&(e.preventDefault(),e.stopPropagation())},drag:function(e,c,u){var h,v,m,_,O,R,P,S,T,D;if(!(e instanceof MouseEvent&&e.button!==x||(n=-(u._lastPos.x-u._startPos.x),i=-(u._lastPos.y-u._startPos.y),t&&t>Date.now()-w.options.maxClickTm&&Math.abs(i)<w.options.maxClickOffset&&Math.abs(n)<w.options.maxClickOffset)))for(_=!n,S=!i,w.options.dragDirectionLock&&("Y"===r||!r&&Math.abs(.5*i)>Math.abs(n)?(r="Y",n=0):("X"===r||!r&&Math.abs(.5*n)>Math.abs(i))&&(r="X",i=0)),D=0;D<o.length;D++)if((h=o[D]).__isTweener){var j,k,E,B,M,A,C,W,I,L;if(v=p&&(null===(j=h.axes)||void 0===j?void 0:j[p]),R=f&&(null===(k=h.axes)||void 0===k?void 0:k[f]),!v&&!R)continue;a[D]||(a[D]={x:null===(M=v)||void 0===M?void 0:M.scrollPos,y:null===(A=R)||void 0===A?void 0:A.scrollPos},null===(C=v)||void 0===C||null===(C=C.inertia)||void 0===C||C.startMove(),null===(W=R)||void 0===W||null===(W=W.inertia)||void 0===W||W.startMove(),p&&v&&(null===(I=v)||void 0===I||!I.inertiaFrame)&&h.applyInertia(v,p),f&&R&&(null===(L=R)||void 0===L||!L.inertiaFrame)&&h.applyInertia(R,f)),v&&(O=null!=y&&y.current?s:h._.box.x,m=n&&n/O*(v.scrollableWindow||v.scrollableArea)||0,g&&(m=g(m))),R&&(T=null!=b&&b.current?l:h._.box.y,P=i&&i/T*(R.scrollableWindow||R.scrollableArea)||0,d&&(P=d(P))),v&&!_&&m&&null!==(E=v)&&void 0!==E&&null!==(E=E.inertia)&&void 0!==E&&E.isInbound(a[D].x+m)&&h.componentShouldScroll(p,m)&&(v.inertia.hold(a[D].x+m),_=!0),R&&!S&&P&&null!==(B=R)&&void 0!==B&&null!==(B=B.inertia)&&void 0!==B&&B.isInbound(a[D].y+P)&&h.componentShouldScroll(f,P)&&(R.inertia.hold(a[D].y+P),S=!0)}},dropped:function(e,s,l){var c,u;if(!(e instanceof MouseEvent&&e.button!==x)){for(r=void 0,u=0;u<o.length;u++){var d,g;(c=o[u]).__isTweener&&a[u]&&(null===(d=c.axes)||void 0===d||null===(d=d[p])||void 0===d||null===(d=d.inertia)||void 0===d||d.release(),null===(g=c.axes)||void 0===g||null===(g=g[f])||void 0===g||null===(g=g.inertia)||void 0===g||g.release())}!t||t>Date.now()-w.options.maxClickTm&&Math.abs(i)<w.options.maxClickOffset&&Math.abs(n)<w.options.maxClickOffset||(e.stopPropagation(),e.cancelable&&e.preventDefault()),o=a=null}}},null,w.options.enableMouseDrag||h,v),S._.doRegister=!!c):S._.doRegister=!0}}}),[]);return g().useEffect((function(){return j._registerScrollListeners(),function(){var e,t=null===(e=S.root)||void 0===e?void 0:e.current;S._.scrollEnabled&&(S._.scrollEnabled=!1,t&&S._.dragList&&ye.removeEvent(t,S._.dragList))}}),[]),g().useEffect((function(){R().function(i)&&i(P.current),R().function(t)?t(P.current):t&&(t.current=P.current)}),[i,t]),S.props={xAxis:a,yAxis:s,yHook:u,xHook:p,mouseDrag:h,touchDrag:y,tweener:f||D,xBoxRef:c,yBoxRef:l,button:w},S._parentTweener=D,g().createElement(o,x()({ref:P},O),r)}));const nt=rt;rt.div=function(e){return g().createElement(rt,e)};const ot=function(){return g().useContext(P)};function it(e,t){var r=Object.keys(e);if(Object.getOwnPropertySymbols){var n=Object.getOwnPropertySymbols(e);t&&(n=n.filter((function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable}))),r.push.apply(r,n)}return r}var at={}.constructor;function st(){for(var e=arguments.length,t=new Array(e),r=0;r<e;r++)t[r]=arguments[r];var n=(!t[0]||Xe(t[0]))&&t.shift(),o=(!t[0]||t[0]instanceof at)&&t.shift()||{};if(!n)return function(e){return st(e,o)};o=function(e){for(var t=1;t<arguments.length;t++){var r=null!=arguments[t]?arguments[t]:{};t%2?it(Object(r),!0).forEach((function(t){E()(e,t,r[t])})):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(r)):it(Object(r)).forEach((function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(r,t))}))}return e}({wheelRatio:5,maxClickTm:200,maxClickOffset:20},o);var i=g().forwardRef((function(e,t){return g().createElement(ze,{oProps:e,forwardedRef:t,BaseComponent:n,tweenerOptions:o})}));return i.displayName=String.fromCharCode(55358,56793)+(n.displayName||n.name),i}function lt(){try{var e=!Boolean.prototype.valueOf.call(Reflect.construct(Boolean,[],(function(){})))}catch(e){}return(lt=function(){return!!e})()}var ct,ut={}.constructor;function pt(){for(var e=arguments.length,t=new Array(e),r=0;r<e;r++)t[r]=arguments[r];var n=(!t[0]||Xe(t[0]))&&t.shift(),i=(!t[0]||t[0]instanceof ut)&&t.shift()||{};if(!n||!(n.prototype instanceof g().Component||n===g().Component))return function(e){return pt(e,i)};var s=function(e){function t(){return o()(this,t),e=this,r=t,n=arguments,r=u()(r),l()(e,lt()?Reflect.construct(r,n||[],u()(e).constructor):r.apply(e,n));var e,r,n}return f()(t,e),a()(t,[{key:"render",value:function(){var e=this;return g().createElement(P.Consumer,null,(function(t){return g().createElement(n,x()({},e.props,{tweener:t,ref:e.props.forwardedRef}))}))}}])}(g().Component);E()(s,"displayName",n.displayName||n.name);var c=g().forwardRef((function(e,t){return g().createElement(s,x()({},e,{forwardedRef:t}))}));return c.displayName=s.displayName,c}function ft(){try{var e=!Boolean.prototype.valueOf.call(Reflect.construct(Boolean,[],(function(){})))}catch(e){}return(ft=function(){return!!e})()}se().EasingFunctions=B;var dt=st(ct=function(e){function t(){return o()(this,t),e=this,r=t,n=arguments,r=u()(r),l()(e,ft()?Reflect.construct(r,n||[],u()(e).constructor):r.apply(e,n));var e,r,n}return f()(t,e),a()(t,[{key:"render",value:function(){return this.props.children}}])}(g().Component))||ct;const gt={tweener:st,child:pt,useTweener:ot,useVoodoo:Ve,hook:Ve,tools:e,Draggable:nt,Component:dt,Node:et,Context:P,Axis:He,dom:ye}})(),module.exports=n})();
+(()=>{var e={173:e=>{e.exports={walknSetExport:function(e,t,r){var n,o,i=t.split("/"),a=e;for(n=0;n<i.length-1;)a=a[i[n]]=a[i[n]]||{},n++;o=1===Object.keys(r).length&&r.default||r,a[i[n]]?(a[i[n]].__esModule||Object.assign(o,a[i[n]]),a[i[n]]=o):a[i[n]]=o}}},275:(e,t,r)=>{"use strict";r.d(t,{Bw:()=>l,CG:()=>p,U6:()=>f,ai:()=>u,bz:()=>i,lc:()=>a,m3:()=>c,yW:()=>s});var n={},o=r(173).walknSetExport;o(n,"any",r(360)),o(n,"bool",r(308)),o(n,"color",r(142)),o(n,"multi",r(643)),o(n,"ratio",r(361)),o(n,"length",r(616)),o(n,"number",r(93)),o(n,"shadow",r(936)),o(n,"svgAttr",r(575));var i=n.any,a=n.bool,s=n.color,l=n.length,c=n.multi,u=n.number,p=n.ratio,f=n.svgAttr},597:(e,t,r)=>{"use strict";r.d(t,{$U:()=>a,FK:()=>i,J0:()=>l,MD:()=>o,Tl:()=>s,VP:()=>c,xk:()=>n});var n={margin:{properties:["marginTop","marginRight","marginBottom","marginLeft"],multiple:!0},marginBottom:{types:["length"]},marginLeft:{types:["length"]},marginRight:{types:["length"]},marginTop:{types:["length"]},padding:{properties:["paddingTop","paddingRight","paddingBottom","paddingLeft"],multiple:!0},paddingBottom:{types:["length"]},paddingLeft:{types:["length"]},paddingRight:{types:["length"]},paddingTop:{types:["length"]},bottom:{types:["length-percentage-calc"]},left:{types:["length-percentage-calc"]},right:{types:["length-percentage-calc"]},top:{types:["length-percentage-calc"]},zIndex:{types:["integer"]},width:{types:["length-percentage-calc"]},maxWidth:{types:["length-percentage-calc"]},minWidth:{types:["length-percentage-calc"]},height:{types:["length-percentage-calc"]},maxHeight:{types:["length-percentage-calc"]},minHeight:{types:["length-percentage-calc"]},lineHeight:{types:["length"]},verticalAlign:{types:["length"]},visibility:{types:["visibility"]},borderSpacing:{types:["length"],multiple:!0},color:{types:["color"]},opacity:{types:["number"]},backgroundColor:{types:["color"]},backgroundPosition:{types:["length-percentage-calc"],multiple:!0,repeatable:!0},backgroundSize:{types:["length-percentage-calc"],multiple:!0,repeatable:!0},border:{properties:["borderStyle","borderWidth","borderColor"]},borderBottom:{properties:["borderBottomStyle","borderBottomWidth","borderBottomColor"]},borderLeft:{properties:["borderLeftStyle","borderLeftWidth","borderLeftColor"]},borderRight:{properties:["borderRightStyle","borderRightWidth","borderRightColor"]},borderTop:{properties:["borderTopStyle","borderTopWidth","borderTopColor"]},borderColor:{properties:["borderTopColor","borderRightColor","borderBottomColor","borderLeftColor"]},borderWidth:{properties:["borderTopWidth","borderRightWidth","borderBottomWidth","borderLeftWidth"]},borderBottomColor:{types:["color"]},borderLeftColor:{types:["color"]},borderRightColor:{types:["color"]},borderTopColor:{types:["color"]},borderBottomWidth:{types:["length"]},borderLeftWidth:{types:["length"]},borderRightWidth:{types:["length"]},borderTopWidth:{types:["length"]},borderRadius:{properties:["borderTopLeftRadius","borderTopRightRadius","borderBottomRightRadius","borderBottomLeftRadius"]},borderTopLeftRadius:{types:["length-percentage-calc"],multiple:!0},borderTopRightRadius:{types:["length-percentage-calc"],multiple:!0},borderBottomRightRadius:{types:["length-percentage-calc"],multiple:!0},borderBottomLeftRadius:{types:["length-percentage-calc"],multiple:!0},boxShadow:{types:["shadow-list"]},caretColor:{types:["color"]},outline:{properties:["outlineColor","outlineWidth"]},outlineColor:{types:["color"]},outlineWidth:{types:["length"]},outlineOffset:{types:["length"]},flex:{properties:["flexGrow","flexShrink","flexBasis"]},flexGrow:{types:["number"]},flexShrink:{types:["number"]},flexBasis:{types:["length-percentage-calc"]},order:{types:["integer"]},font:{properties:["fontWeight","fontStretch","fontSize","lineHeight"]},fontWeight:{types:["font-weight"]},fontStretch:{types:["font-stretch"]},fontSize:{types:["length"]},fontSizeAdjust:{types:["number"]},gridTemplateColumns:{types:["length-percentage-calc"],multiple:!0},gridTemplateRows:{types:["length-percentage-calc"],multiple:!0},gridTemplate:{properties:["gridTemplateRows","gridTemplateColumns"]},grid:{properties:["gridTemplateRows","gridTemplateColumns"]},gridRowGap:{types:["length-percentage-calc"]},gridColumnGap:{types:["length-percentage-calc"]},gridGap:{properties:["gridRowGap","gridColumnGap"]},clip:{types:["rectangle"]},clipPath:{types:["basic-shape"]},mask:{properties:["maskPosition","maskSize"]},maskPosition:{types:["length-percentage-calc"],multiple:!0,repeatable:!0},maskSize:{types:["length-percentage-calc"],multiple:!0,repeatable:!0},shapeOutside:{types:["basic-shape"]},shapeMargin:{types:["length-percentage-calc"]},shapeImageThreshold:{types:["number"]},scrollPadding:{properties:["scrollPaddingTop","scrollPaddingRight","scrollPaddingBottom","scrollPaddingLeft"]},scrollPaddingTop:{types:["length-percentage-calc"]},scrollPaddingRight:{types:["length-percentage-calc"]},scrollPaddingBottom:{types:["length-percentage-calc"]},scrollPaddingLeft:{types:["length-percentage-calc"]},scrollPaddingBlock:{properties:["scrollPaddingBlockStart","scrollPaddingBlockEnd"]},scrollPaddingBlockStart:{types:["length-percentage-calc"]},scrollPaddingBlockEnd:{types:["length-percentage-calc"]},scrollPaddingInline:{properties:["scrollPaddingInlineStart","scrollPaddingInlineEnd"]},scrollPaddingInlineStart:{types:["length-percentage-calc"]},scrollPaddingInlineEnd:{types:["length-percentage-calc"]},scrollSnapMargin:{properties:["scrollSnapMarginTop","scrollSnapMarginRight","scrollSnapMarginBottom","scrollSnapMarginLeft"]},scrollSnapMarginTop:{types:["length"]},scrollSnapMarginRight:{types:["length"]},scrollSnapMarginBottom:{types:["length"]},scrollSnapMarginLeft:{types:["length"]},scrollSnapMarginBlock:{properties:["scrollSnapMarginBlockStart","scrollSnapMarginBlockEnd"]},scrollSnapMarginBlockStart:{types:["length"]},scrollSnapMarginBlockEnd:{types:["length"]},scrollSnapMarginInline:{properties:["scrollSnapMarginInlineStart","scrollSnapMarginInlineEnd"]},scrollSnapMarginInlineStart:{types:["length"]},scrollSnapMarginInlineEnd:{types:["length"]},textDecoration:{properties:["textDecorationColor"]},textDecorationColor:{types:["color"]},textEmphasis:{properties:["textEmphasisColor"]},textEmphasisColor:{types:["color"]},textShadow:{types:["shadow-list"]},columns:{properties:["columnWidth","columnCount"]},columnWidth:{types:["length"]},columnCount:{types:["integer"]},columnGap:{types:["length-percentage-calc"]},columnRule:{properties:["columnRuleColor","columnRuleWidth"]},columnRuleColor:{types:["color"]},columnRuleWidth:{types:["length"]},letterSpacing:{types:["length"]},tabSize:{types:["length"]},textIndent:{types:["length-percentage-calc"]},wordSpacing:{types:["length-percentage-calc"]},transform:{types:["transform"]},transformOrigin:{types:["length-percentage-calc"],multiple:!0},perspective:{types:["length"]},perspectiveOrigin:{types:["length-percentage-calc"],multiple:!0},fill:{types:["color"]},stroke:{types:["color"]},strokeWidth:{types:["length"]},strokeOpacity:{types:["number"]},fillOpacity:{types:["number"]},strokeDashoffset:{types:["length"]},cx:{types:["svg-attr"]},cy:{types:["svg-attr"]},r:{types:["svg-attr"]},rx:{types:["svg-attr"]},ry:{types:["svg-attr"]},x:{types:["svg-attr"]},y:{types:["svg-attr"]},x1:{types:["svg-attr"]},y1:{types:["svg-attr"]},x2:{types:["svg-attr"]},y2:{types:["svg-attr"]}},o=["","deg","box","bz","bh","bw","deg","em","ex","%","px","cm","mm","in","pt","pc","ch","rem","vh","vw","vmin","vmax"],i=new RegExp("^s*([+-]?(?:[0-9]*[.])?[0-9]+)\\s*("+["\\w+","deg","bz","bh","bw","cap","ch","deg","em","ic","ex","%","px","cm","mm","in","pt","pc","ch","rem","vh","vw","vmin","vmax"].join("|")+")s*$"),a=function(){return Number((arguments.length>0&&void 0!==arguments[0]?arguments[0]:0).toFixed(3))};function s(e,t){var r=arguments.length>2&&void 0!==arguments[2]?arguments[2]:{},o=n[e],i=o&&o.properties,a=t.split(" ");return o.multiple?i&&i.forEach((function(e,t){r[e]=a[t%a.length]})):i&&i.forEach((function(e,t){a[t]&&(r[e]=a[t])})),r}function l(e){var t=n[e],r=t&&t.properties;return r&&!!r.length}function c(e,t){return!!n[e]}},34:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>n.demux,mux:()=>n.mux,release:()=>n.release});var n=r(142)},664:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>n.demux,demuxOne:()=>n.demuxOne,mux:()=>n.mux,muxOne:()=>n.muxOne,release:()=>n.release});var n=r(936)},663:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>g,demuxOne:()=>d,mux:()=>v,muxOne:()=>h,release:()=>f});var n=r(213),o=r.n(n),i=r(767),a=r.n(i),s=r(597);function l(e,t){var r=Object.keys(e);if(Object.getOwnPropertySymbols){var n=Object.getOwnPropertySymbols(e);t&&(n=n.filter((function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable}))),r.push.apply(r,n)}return r}function c(e){for(var t=1;t<arguments.length;t++){var r=null!=arguments[t]?arguments[t]:{};t%2?l(Object(r),!0).forEach((function(t){o()(e,t,r[t])})):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(r)):l(Object(r)).forEach((function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(r,t))}))}return e}var u={blur:"px",brightness:"%",contrast:"%",dropShadow:!0,grayscale:"%",hueRotate:"deg",invert:"%",opacity:"%",saturate:"%",sepia:"%"},p={};function f(e,t,r,n,o,i){var a,s=e.split("_");if(4===s.length){if(--n[s[0]][s[1]][s[2]]||i||delete n[s[0]][s[1]][s[2]],!i)for(;n[s[0]].length&&!n[s[0]][n[s[0]].length-1];)n[s[0]].pop();if(--n[a=s[0]+"_"+s[1]+"_"+s[2]][s[3]]||i||(delete n[a][s[3]],delete t[e]),!i)for(;n[a].length&&!n[a][n[a].length-1];)n[a].pop();0!==n[a].length||i||delete n[a],0!==n[s[0]].length||i||(delete n[s[0]],delete o[s[0]],delete r[s[0]])}else console.log("wtf",s)}function d(e,t,r,n,o,i){var a=r,l=s.MD[e]||u[n];return"bw"===l&&(a*=i.x,l="px"),"wh"===l&&(a*=i.y,l="px"),"bz"===l&&(a*=i.z,l="px"),"deg"===l&&(a%=360),l?(0,s.$U)(a)+l:(0,s.$U)(a)}function g(e,t,r,n,o){for(var i,a,s,l,c,u,p="",f=0,g=0;f<n[e].length;f++)for(a in i=n[e][f])if(i.hasOwnProperty(a)){for(l=e+"_"+f+"_"+a,u="",g=0,s=0;s<n[l].length;s++)n[l][s]&&(c=d(s,0,t[l+"_"+s],a,0,o),g&&"-"===c[0]?c=" - "+c.substr(1):g&&(c=" + "+c),u+=c,g++);g>1&&(u="calc("+u+")"),g>0&&(p+=a+"("+(u||"0")+") ")}r.filter=p}function h(e,t,r,n,o,i,l,c){var f=!!a().string(r)&&r.match(s.FK),d=f&&f[2]||u[t],h=s.MD.indexOf(d),v=-1!==h&&e+"_"+h||e;return i[v]=p[t]||0,o[e][h]=o[e][h]||0,c&&c[h]?n[v]+=f?parseFloat(f[1]):parseFloat(r):(!l&&o[e][h]++,n[v]=f?parseFloat(f[1]):parseFloat(r),c&&(c[h]=!0)),g}var v=function(e,t,r,n,o,i,s){n[e]=n[e]||[],a().array(t)||(t=[t]);for(var l,u,p,f,d,v,y,m=0;m<t.length;m++){for(u in l=t[m],p=s?{}:c({},n[e][m]||{}),l)if(l.hasOwnProperty(u))if(f=l[u],y={},d=e+"_"+m+"_"+u,p[u]=p[u]||n[e][m]&&n[e][m][u]||0,!i&&p[u]++,n[d]=n[d]||[],a().array(f))for(v=0;v<f.length;v++)h(d,u,f[v]||0,r,n,o,i,y);else h(d,u,f||0,r,n,o,i);n[e][m]=s?c(c(c({},p),n[e][m]||{}),p):p}return g}},954:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>n.demux,demuxOne:()=>n.demuxOne,mux:()=>n.mux,muxOne:()=>n.muxOne,release:()=>n.release});var n=r(936)},49:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>h,demuxOne:()=>g,mux:()=>y,muxOne:()=>v,release:()=>d});var n=r(213),o=r.n(n),i=r(767),a=r.n(i),s=r(597);function l(e,t){var r=Object.keys(e);if(Object.getOwnPropertySymbols){var n=Object.getOwnPropertySymbols(e);t&&(n=n.filter((function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable}))),r.push.apply(r,n)}return r}function c(e){for(var t=1;t<arguments.length;t++){var r=null!=arguments[t]?arguments[t]:{};t%2?l(Object(r),!0).forEach((function(t){o()(e,t,r[t])})):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(r)):l(Object(r)).forEach((function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(r,t))}))}return e}var u={translateX:"px",translateY:"px",translateZ:"px",scale:"",scaleZ:"",scaleX:"",scaleY:"",rotate:"deg",skewX:"deg",skewY:"deg",rotateX:"deg",rotateY:"deg",rotateZ:"deg",perspective:"px"},p={translateX:"x",translateY:"y",translateZ:"z",rotateX:"x",rotateY:"y",rotateZ:"z",left:"x",right:"x",top:"y",bottom:"y",width:"x",height:"y"},f={scale:1,scaleX:1,scaleY:1,scaleZ:1};function d(e,t,r,n,o,i){var a,s=e.split("_");if(4===s.length){if(--n[s[0]][s[1]][s[2]]||i||delete n[s[0]][s[1]][s[2]],!i)for(;n[s[0]].length&&!n[s[0]][n[s[0]].length-1];)n[s[0]].pop();if(--n[a=s[0]+"_"+s[1]+"_"+s[2]][s[3]]||i||(delete n[a][s[3]],delete t[e]),!i)for(;n[a].length&&!n[a][n[a].length-1];)n[a].pop();0!==n[a].length||i||delete n[a],0!==n[s[0]].length||i||(delete n[s[0]],delete o[s[0]],delete r[s[0]])}else console.warn("[react-voodoo] transform.release: unexpected key format (expected 4 segments):",s)}function g(e,t,r,n,o,i){var a=r,l=s.MD[e]||u[n];return"box"===l&&(a*=i[p[n]]||i.x,l="px"),"bw"===l&&(a*=i.x,l="px"),"wh"===l&&(a*=i.y,l="px"),"bz"===l&&(a*=i.z,l="px"),"deg"===l&&(a%=360),l?(0,s.$U)(a)+l:(0,s.$U)(a)}function h(e,t,r,n,o){for(var i,a,s,l,c,u,p="",f=0,d=0;f<n[e].length;f++)for(a in i=n[e][f])if(i.hasOwnProperty(a)){for(l=e+"_"+f+"_"+a,u="",d=0,s=0;s<n[l].length;s++)n[l][s]&&(c=g(s,0,t[l+"_"+s],a,0,o),d&&"-"===c[0]?c=" - "+c.substr(1):d&&(c=" + "+c),u+=c,d++);d>1&&(u="calc("+u+")"),d>0&&(p+=a+"("+(u||"0")+") ")}r.transform=p}function v(e,t,r,n,o,i,l,c){var p=!!a().string(r)&&r.match(s.FK),d=p&&p[2]||u[t],g=s.MD.indexOf(d),v=-1!==g&&e+"_"+g||e;return i[v]=f[t]||0,o[e][g]=o[e][g]||0,c&&c[g]?n[v]+=p?parseFloat(p[1]):parseFloat(r):(!l&&o[e][g]++,n[v]=p?parseFloat(p[1]):parseFloat(r),c&&(c[g]=!0)),h}var y=function(e,t,r,n,o,i,s){if(n[e]=n[e]||[],!a().array(t)&&!a().object(t))return console.warn("[react-voodoo] transform.mux: unexpected value for '",e,"':",t),h;a().array(t)||(t=[t]);for(var l,u,p,f,d,g,y,m=0;m<t.length;m++){for(u in l=t[m],p=s?{}:c({},n[e][m]||{}),l)if(l.hasOwnProperty(u))if(f=l[u],y={},d=e+"_"+m+"_"+u,p[u]=p[u]||n[e][m]&&n[e][m][u]||0,!i&&p[u]++,n[d]=n[d]||[],a().array(f))for(g=0;g<f.length;g++)v(d,u,f[g]||0,r,n,o,i,y);else v(d,u,f||0,r,n,o,i);n[e][m]=s?c(c(c({},p),n[e][m]||{}),p):p}return h}},360:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>p,demuxOne:()=>u,mux:()=>g,muxOne:()=>d,muxer:()=>f,release:()=>c});var n=r(767),o=r.n(n),i=r(597),a={left:"px",right:"px",top:"px",bottom:"px",width:"px",height:"px",perspective:"px"},s={left:"x",right:"x",top:"y",bottom:"y",width:"x",height:"y"},l={opacity:0};function c(e,t,r,n,o,i){var a=e.split("_");if(2===a.length){if(--n[a[0]][a[1]]||i||delete t[e],!i)for(;n[a[0]].length&&!n[a[0]][n[a[0]].length-1];)n[a[0]].pop();0!==n[a[0]].length||i||(delete n[a[0]],delete o[a[0]],r&&delete r[a[0]])}else--n[e].count||i||(delete t[e],delete n[e],delete o[e],delete r[e])}function u(e,t,r,n,o){var l=t,c=i.MD[e]||a[r]||"px";return"box"===c&&(l*=o[s[r]]||o.x,c="px"),"bw"===c&&(l*=o.x,c="px"),"bh"===c&&(l*=o.y,c="px"),"bz"===c&&(l*=o.z,c="px"),c?(0,i.$U)(l)+c:(0,i.$U)(l)}function p(e,t,r,n,o,i){var a,s,l,c=0;if(a="",n[e].isString)return r[e]=n[e].value[Math.round(t[e])];for(s=0;s<n[e].length;s++)n[e][s]&&(t[l=e+"_"+s]<0?a+=(c?" - ":"-")+u(s,-t[l],i||e,0,o):a+=(c?" + ":"")+u(s,t[l],i||e,0,o),c++);return c>1&&(a="calc("+a+")"),r?r[e]=a:a}function f(e,t,r,n,i,a){n[e]=n[e]||[];var s=[];if(o().array(t))for(var l=0;l<t.length;l++)d(e,t[l]||0,r,n,i,a,s);else d(e,t||0,r,n,i,a);return p}function d(e,t,r,n,s,c,u){var f=!!o().string(t)&&t.match(i.FK),d=f&&f[2]||a[e]||"px",g=i.MD.indexOf(d),h=-1!==g&&e+"_"+g||e;return!f&&o().string(t)?(s[e]=l[e]||0,n[e].count=n[e].count||0,n[e].count++,n[e].isString=!0,n[e].value=n[e].value||[],!n[e].value.includes(t)&&n[e].value.push(t),r[e]=n[e].value.indexOf(t),p):(s[h]=l[e]||0,n[e][g]=n[e][g]||0,u&&u[g]?r[h]+=f?parseFloat(f[1]):parseFloat(t):(!c&&n[e][g]++,r[h]=f?parseFloat(f[1]):parseFloat(t),u&&(u[g]=!0)),p)}var g=f},308:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>i,mux:()=>a,release:()=>o});var n={opacity:1};function o(e,t,r,n,o,i){--n[e]||i||(delete t[e],delete n[e],delete o[e],delete r[e])}function i(e,t,r,n,o){var i=!!t[e];return r?r[e]=i:i}var a=function(e,t,r,o,a,s){return a[e]=n[e]||0,r[e]=!1===t?0:1,o[e]=o[e]||0,!s&&o[e]++,i}},142:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>l,mux:()=>c,release:()=>s});const n=__webpack_require__(/*! color-rgba */ "./node_modules/color-rgba/index.js");var o=r.n(n),i=r(767),a=r.n(i);function s(e,t,r,n,o,i){var a=e.split("_"),s=a.slice(0,a.length-1).join("_");--n[e]||i||(delete t[e],delete n[e]),!s||--n[s]||i||(delete t[e],delete n[e])}function l(e,t,r,n){var o="rgba("+Math.min(255,t[e+"_r"])+", "+Math.min(255,t[e+"_g"])+", "+Math.min(255,t[e+"_b"])+", "+Math.min(1,t[e+"_a"])+")";return r?r[e]=o:o}function c(e,t,r,n,i,s){var c=a().string(t)?o()(t):t&&[t.r||0,t.g||0,t.b||0,t.a||0];return n[e]=n[e]||0,n[e+"_r"]=n[e+"_r"]||0,n[e+"_g"]=n[e+"_g"]||0,n[e+"_b"]=n[e+"_b"]||0,n[e+"_a"]=n[e+"_a"]||0,s||(n[e]+=4,n[e+"_r"]++,n[e+"_g"]++,n[e+"_b"]++,n[e+"_a"]++),r[e+"_r"]=c[0],r[e+"_g"]=c[1],r[e+"_b"]=c[2],r[e+"_a"]=c[3],i[e]=0,i[e+"_r"]=0,i[e+"_g"]=0,i[e+"_b"]=0,i[e+"_a"]=1,l}},616:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>p,demuxOne:()=>u,mux:()=>g,muxOne:()=>d,muxer:()=>f,release:()=>c});var n=r(767),o=r.n(n),i=r(597),a={left:"px",right:"px",top:"px",bottom:"px",width:"px",height:"px",perspective:"px"},s={left:"x",right:"x",top:"y",bottom:"y",width:"x",height:"y"},l={opacity:0};function c(e,t,r,n,o,i){var a=e.split("_");if(2===a.length){if(--n[a[0]][a[1]]||i||delete t[e],!i)for(;n[a[0]].length&&!n[a[0]][n[a[0]].length-1];)n[a[0]].pop();0!==n[a[0]].length||i||(delete n[a[0]],delete o[a[0]],r&&delete r[a[0]])}else console.log("wtf",a)}function u(e,t,r,n,o){var l=t,c=i.MD[e]||a[r]||"px";return"box"===c&&(l*=o[s[r]]||o.x,c="px"),"bw"===c&&(l*=o.x,c="px"),"bh"===c&&(l*=o.y,c="px"),"bz"===c&&(l*=o.z,c="px"),c?(0,i.$U)(l)+c:(0,i.$U)(l)}function p(e,t,r,n,o,i){var a,s,l,c=0;for(a="",s=0;s<n[e].length;s++)n[e][s]&&(t[l=e+"_"+s]<0?a+=(c?" - ":"-")+u(s,-t[l],i||e,0,o):a+=(c?" + ":"")+u(s,t[l],i||e,0,o),c++);return c>1&&(a="calc("+a+")"),r?r[e]=a:a}function f(e,t,r,n,i,a){n[e]=n[e]||[];var s=[];if(o().array(t))for(var l=0;l<t.length;l++)d(e,t[l]||0,r,n,i,a,s);else d(e,t||0,r,n,i,a);return p}function d(e,t,r,n,s,c,u){var f=!!o().string(t)&&t.match(i.FK),d=f&&f[2]||a[e]||"px",g=i.MD.indexOf(d),h=-1!==g&&e+"_"+g||e;return s[h]=l[e]||0,n[e][g]=n[e][g]||0,u&&u[g]?r[h]+=f?parseFloat(f[1]):parseFloat(t):(!c&&n[e][g]++,r[h]=f?parseFloat(f[1]):parseFloat(t),u&&(u[g]=!0)),p}var g=f},643:(e,t,r)=>{"use strict";r.r(t),r.d(t,{default:()=>c});var n=r(767),o=r.n(n),i=r(93),a={top:"0%",bottom:"100%",center:"50%",left:"0%",right:"100%"};function s(e,t,r,n,o,a){for(var s=n["_"+e],l="",c={},u=0;u<s;u++)i.demux(e+"_"+u,t,c,n,o,a),l+=c[e+"_"+u]+" ";r[e]=l}function l(e,t,r,n,o,i){e.split("_")}const c=function(e){return{mux:function(t,r,n,l,c,u){var p,f=r.split(" ");l[t]=l[t]||0,u&&l[t]++,l["_"+t]=e;for(var d=0;d<e;d++)p=f[d%f.length],p=o().string(p)&&a[p]||p,i.mux(t+"_"+d,p,n,l,c,u);return s},demux:s,release:l}}},93:(e,t,r)=>{"use strict";function n(e,t,r,n,o,i){--n[e]||i||(delete t[e],delete n[e],delete o[e],delete r[e])}function o(e,t,r,n,o){r[e]=~~t[e]}r.r(t),r.d(t,{demux:()=>o,mux:()=>i,release:()=>n});var i=function(e,t,r,n,i,a){return i[e]=0,r[e]=~~t,n[e]=n[e]||0,!a&&n[e]++,o}},361:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>a,mux:()=>s,release:()=>i});var n=r(597),o={opacity:1};function i(e,t,r,n,o,i){--n[e]||i||(delete t[e],delete n[e],delete o[e],delete r[e])}function a(e,t,r,o,i){r[e]=Math.min(1,Math.max(0,(0,n.$U)(t[e])))}var s=function(e,t,r,n,i,s){return i[e]=o[e]||0,r[e]=t,n[e]=n[e]||0,!s&&n[e]++,a}},936:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>T,demuxOne:()=>S,mux:()=>k,muxOne:()=>D,release:()=>P});var n=r(213),o=r.n(n),i=r(409),a=r.n(i),s=r(767),l=r.n(s),c=r(597),u=r(275);function p(e,t){var r=Object.keys(e);if(Object.getOwnPropertySymbols){var n=Object.getOwnPropertySymbols(e);t&&(n=n.filter((function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable}))),r.push.apply(r,n)}return r}function f(e){for(var t=1;t<arguments.length;t++){var r=null!=arguments[t]?arguments[t]:{};t%2?p(Object(r),!0).forEach((function(t){o()(e,t,r[t])})):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(r)):p(Object(r)).forEach((function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(r,t))}))}return e}var d,g,h,v,y,m,b,x,w=(d=/,(?![^\(]*\))/,g=/\s(?![^(]*\))/,h=/^[0-9]+[a-zA-Z%]+?$/,v=function(e){var t=e.split(g),r=t.includes("inset"),n=t.slice(-1)[0],o=m(n)?void 0:n,i=t.filter((function(e){return"inset"!==e})).filter((function(e){return e!==o})).map(b),s=a()(i,4);return{inset:r,offsetX:s[0],offsetY:s[1],blurRadius:s[2],spreadRadius:s[3],color:o}},y=function(e){var t=e||{},r=t.inset,n=t.offsetX,o=void 0===n?0:n,i=t.offsetY,a=void 0===i?0:i,s=t.blurRadius;return[r?"inset":null,o,a,void 0===s?0:s,t.spreadRadius,t.color].filter((function(e){return null!=e})).map(x).map((function(e){return(""+e).trim()})).join(" ")},m=function(e){return"0"===e||h.test(e)},b=function(e){if(!/px$/.test(e)&&"0"!==e)return e;var t=parseFloat(e);return isNaN(t)?e:t},x=function(e){return"number"==typeof e&&0!==e?e+"px":e},{parse:function(e){return e.split(d).map((function(e){return e.trim()})).map(v)},stringify:function(e){return e.map(y).join(", ")}}),_={perspective:"px"},O={translateX:"x"},R={inset:u.lc,color:u.yW};function P(e,t,r,n,o,i){var a,s=e.split("_");if(s.length>2){if(a=s[0]+"_"+s[1]+"_"+s[2],R[s[2]])return R[s[2]].release(e,t,r,n,o,i),n[a]||--n[s[0]][s[1]][s[2]]||i||delete n[s[0]][s[1]][s[2]],void(0!==n[s[0]].length||i||(delete n[s[0]],delete o[s[0]],delete r[s[0]]));if(--n[s[0]][s[1]][s[2]]||i||delete n[s[0]][s[1]][s[2]],!i)for(;n[s[0]].length&&!n[s[0]][n[s[0]].length-1];)n[s[0]].pop();if(--n[a][s[3]]||i||(delete n[a][s[3]],delete t[e]),!i)for(;n[a].length&&!n[a][n[a].length-1];)n[a].pop();if(0!==n[a].length||i||delete n[a],!i)for(;n[s[0]].length&&!Object.keys(n[s[0]][n[s[0]].length-1]).length;)n[s[0]].pop();0!==n[s[0]].length||i||(delete n[s[0]],delete o[s[0]],delete r[s[0]])}else console.log("wtf",s)}function S(e,t,r,n,o,i){var a=r,s=c.MD[e]||_[n];return"box"===s&&(a*=i[O[n]]||i.x,s="px"),"bw"===s&&(a*=i.x,s="px"),"wh"===s&&(a*=i.y,s="px"),"bz"===s&&(a*=i.z,s="px"),"deg"===s&&(a%=360),s?(0,c.$U)(a)+s:(0,c.$U)(a)}function T(e,t,r,n,o){for(var i,a,s,l,c,u,p=[],f={},d=0,g=0;d<n[e].length;d++){for(a in f={},i=n[e][d])if(i.hasOwnProperty(a)){if(l=e+"_"+d+"_"+a,R[a])u=R[a].demux(l,t,void 0,n,o);else{for(u="",g=0,s=0;s<n[l].length;s++)n[l][s]&&(c=S(s,0,t[l+"_"+s],a,0,o),g&&"-"===c[0]?c=" - "+c.substr(1):g&&(c=" + "+c),u+=c,g++);g>1&&(u="calc("+u+")")}f[a]=u||0}p.push(f)}r[e]=w.stringify(p)}function D(e,t,r,n,o,i,a,s){var u=!!l().string(r)&&r.match(c.FK),p=u&&u[2]||_[t]||"px",f=c.MD.indexOf(p),d=-1!==f&&e+"_"+f||e;return i[d]=0,o[e][f]=o[e][f]||0,s&&s[f]?n[d]+=u?parseFloat(u[1]):parseFloat(r):(!a&&o[e][f]++,n[d]=u?parseFloat(u[1]):parseFloat(r),s&&(s[f]=!0)),T}var k=function(e,t,r,n,o,i,a){n[e]=n[e]||[],l().array(t)||(t=[t]);for(var s,c,u,p,d,g,h,v=0;v<t.length;v++){for(c in s=t[v],l().string(s)&&(s=w.parse(s)[0]),u=a?{}:f({},n[e][v]||{}),s)if(s.hasOwnProperty(c))if(p=s[c],d=e+"_"+v+"_"+c,u[c]=u[c]||n[e][v]&&n[e][v][c]||0,!i&&u[c]++,R[c])R[c].mux(d,p,r,n,o,i,a);else if(h={},n[d]=n[d]||[],l().array(p))for(g=0;g<p.length;g++)D(d,c,p[g]||0,r,n,o,i,h);else D(d,c,p||0,r,n,o,i);n[e][v]=a?f(f(f({},u),n[e][v]||{}),u):u}return T}},575:(e,t,r)=>{"use strict";r.r(t),r.d(t,{demux:()=>i,mux:()=>a,release:()=>o});var n=r(597);function o(e,t,r,n,o,i){--n[e]||i||(delete t[e],delete n[e],delete o[e],r&&delete r["attr_"+e])}function i(e,t,r,o,i){r["attr_"+e]=String((0,n.$U)(t[e]))}var a=function(e,t,r,n,o,a){return o[e]=0,r[e]=parseFloat(t)||0,n[e]=n[e]||0,!a&&n[e]++,i}},213:e=>{"use strict";e.exports=__webpack_require__(/*! @babel/runtime/helpers/defineProperty */ "./node_modules/@babel/runtime/helpers/defineProperty.js")},409:e=>{"use strict";e.exports=__webpack_require__(/*! @babel/runtime/helpers/slicedToArray */ "./node_modules/@babel/runtime/helpers/slicedToArray.js")},959:e=>{"use strict";e.exports=__webpack_require__(/*! d3-ease */ "./node_modules/d3-ease/dist/d3-ease.js")},767:e=>{"use strict";e.exports=__webpack_require__(/*! is */ "./node_modules/lpack-react/.layer_modules/node_modules/is/index.js")}},t={};function r(n){var o=t[n];if(void 0!==o)return o.exports;var i=t[n]={exports:{}};return e[n](i,i.exports,r),i.exports}r.n=e=>{var t=e&&e.__esModule?()=>e.default:()=>e;return r.d(t,{a:t}),t},r.d=(e,t)=>{for(var n in t)r.o(t,n)&&!r.o(e,n)&&Object.defineProperty(e,n,{enumerable:!0,get:t[n]})},r.o=(e,t)=>Object.prototype.hasOwnProperty.call(e,t),r.r=e=>{"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(e,"__esModule",{value:!0})};var n={};(()=>{"use strict";r.r(n),r.d(n,{Axis:()=>it,Component:()=>Et,Context:()=>T,Draggable:()=>xt,Node:()=>yt,_internalCssUtils:()=>o,child:()=>Dt,default:()=>Mt,dom:()=>Ee,hook:()=>ot,tools:()=>e,tweener:()=>Rt,useTweener:()=>wt,useVoodoo:()=>ot});var e={};r.r(e),r.d(e,{addCss:()=>q,cssAdd:()=>L,cssMult:()=>F,extractCss:()=>$,offset:()=>N,re_cssValueWithUnit:()=>I,reverse:()=>V,scale:()=>z,shiftTransforms:()=>G,target:()=>X});var t={};r.r(t),r.d(t,{backgroundColor:()=>re,boxShadow:()=>ne,default:()=>le,filter:()=>oe,textShadow:()=>ie,transform:()=>ae,typed:()=>se});var o={};r.r(o),r.d(o,{allDemuxers:()=>t,clearTweenableValue:()=>ge,deMuxLine:()=>ye,deMuxTween:()=>ve,getMuxerTypeOfProperty:()=>de,muxToCss:()=>he});const i=__webpack_require__(/*! @babel/runtime/helpers/classCallCheck */ "./node_modules/@babel/runtime/helpers/classCallCheck.js");var a=r.n(i);const s=__webpack_require__(/*! @babel/runtime/helpers/createClass */ "./node_modules/@babel/runtime/helpers/createClass.js");var l=r.n(s);const c=__webpack_require__(/*! @babel/runtime/helpers/possibleConstructorReturn */ "./node_modules/@babel/runtime/helpers/possibleConstructorReturn.js");var u=r.n(c);const p=__webpack_require__(/*! @babel/runtime/helpers/getPrototypeOf */ "./node_modules/@babel/runtime/helpers/getPrototypeOf.js");var f=r.n(p);const d=__webpack_require__(/*! @babel/runtime/helpers/inherits */ "./node_modules/@babel/runtime/helpers/inherits.js");var g=r.n(d);const h=__webpack_require__(/*! react */ "./node_modules/lpack-react/.layer_modules/node_modules/react/index.js");var v=r.n(h),y=r(409),m=r.n(y);const b=__webpack_require__(/*! fast-deep-equal */ "./node_modules/fast-deep-equal/index.js");var x=r.n(b);const w=__webpack_require__(/*! @babel/runtime/helpers/extends */ "./node_modules/@babel/runtime/helpers/extends.js");var _=r.n(w);const O=__webpack_require__(/*! @babel/runtime/helpers/objectWithoutProperties */ "./node_modules/@babel/runtime/helpers/objectWithoutProperties.js");var R=r.n(O),P=r(767),S=r.n(P);const T=v().createContext(null),D=__webpack_require__(/*! @babel/runtime/helpers/toConsumableArray */ "./node_modules/@babel/runtime/helpers/toConsumableArray.js");var k=r.n(D);const j=__webpack_require__(/*! @babel/runtime/helpers/get */ "./node_modules/@babel/runtime/helpers/get.js");var E=r.n(j),M=r(213),B=r.n(M),A=r(959);function C(e,t){var r=Object.keys(e);if(Object.getOwnPropertySymbols){var n=Object.getOwnPropertySymbols(e);t&&(n=n.filter((function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable}))),r.push.apply(r,n)}return r}function W(e){for(var t=1;t<arguments.length;t++){var r=null!=arguments[t]?arguments[t]:{};t%2?C(Object(r),!0).forEach((function(t){B()(e,t,r[t])})):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(r)):C(Object(r)).forEach((function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(r,t))}))}return e}__webpack_require__(/*! react-dom */ "./node_modules/lpack-react/.layer_modules/node_modules/react-dom/index.js");var I=new RegExp("([+-]?(?:[0-9]*[.])?[0-9]+)\\s*("+["box","bz","bh","bw","em","ex","%","px","cm","mm","in","pt","pc","ch","rem","vh","vw","vmin","vmax"].join("|")+")");function L(e,t){S().array(e)||(e=[e]),S().array(t)||(t=[t]);var r,n=e.map((function(e){return e&&e.match&&e.match(I)||[,e||0,"px"]})),o=t.map((function(e){return e&&e.match&&e.match(I)||[,e||0,"px"]})),i={},a=[];for(r=0;r<n.length;)i[n[r][2]]=i[n[r][2]]||0,i[n[r][2]]+=parseFloat(n[r][1]),r++;for(r=0;r<o.length;)i[o[r][2]]=i[o[r][2]]||0,i[o[r][2]]+=parseFloat(o[r][1]),r++;Object.keys(i).forEach((function(e){return a.push(i[e]+e)}));for(var s=arguments.length,l=new Array(s>2?s-2:0),c=2;c<s;c++)l[c-2]=arguments[c];return l.length?L.apply(void 0,[a].concat(l)):a}function F(e,t){S().array(e)||(e=[e]);var r,n=e.map((function(e){return e&&e.match&&e.match(I)||[,e||0,"px"]})),o={},i=[];for(r=0;r<n.length;)o[n[r][2]]=o[n[r][2]]||1,o[n[r][2]]=parseFloat(n[r][1])*t,r++;return Object.keys(o).forEach((function(e){return i.push(o[e]+e)})),i}function N(e){var t=arguments.length>1&&void 0!==arguments[1]?arguments[1]:0;return(e=S().array(e)?e:e&&[e]||e).map((function(e){return W(W({},e),{},{from:e.from+t})}))}function z(e){var t=arguments.length>1&&void 0!==arguments[1]?arguments[1]:0,r=arguments.length>2?arguments[2]:void 0;e=S().array(e)?e:e&&[e]||e;var n=0;return e.forEach((function(e){n=Math.max(n,e.from+e.duration)})),e=e.map((function(e){return W(W({},e),{},{from:e.from/n*t,duration:e.duration/n*t})})),r?N(e,r):e}function U(e){return S().number(e)?-e:S().object(e)?Object.keys(e).reduce((function(t,r){return t[r]=U(e[r]),t}),{}):S().array(e)?e.map((function(e){return U(e)})):e.split(/(\-?\d+(?:\.\d+)?|\-?\.\d+)/gi).map((function(e,t){return t%2?-parseFloat(e):e})).join("")}function V(e){e=S().array(e)?e:e&&[e]||e;var t=0;return e.forEach((function(e){t=Math.max(t,e.from+e.duration)})),e.map((function(e){return W(W({},e),{},{from:t-(e.from+e.duration)},e.apply?{apply:U(e.apply)}:void 0)}))}var H={transform:!0,filter:!0,textShadow:!0,boxShadow:!0};function q(e){for(var t=arguments.length,r=new Array(t>1?t-1:0),n=1;n<t;n++)r[n-1]=arguments[n];var o=r.shift();for(var i in o){var a;o.hasOwnProperty(i)&&(H[i]?(e[i]||(e[i]=[]),S().array(o[i])?q(e[i],o[i]):q(e[i],[o[i]])):S().array(o[i])?(e[i]||(e[i]=[]),S().array(e[i])?(a=e[i]).push.apply(a,k()(o[i])):e[i]=[].concat(k()(o[i]),[e[i]])):e[i]?S().object(e[i])&&S().object(o[i])?q(e[i],o[i]):e[i]=Y(e[i],o[i]):S().object(o[i])?e[i]=W({},o[i]):e[i]=o[i])}return r.length&&q.apply(void 0,[e].concat(r))||e}function Y(e,t){if(!e)return t;if(!t)return e;var r=(""+e).split(/(\-?\d+(?:\.\d+)?|\-?\.\d+)/gi),n=(""+t).split(/(\-?\d+(?:\.\d+)?|\-?\.\d+)/gi),o=r.map((function(e,t){return t%2?parseFloat(e)+parseFloat(n[t]||0):e})).filter((function(e){return""!==e}));return 1===o.length?parseInt(o[0]):o.join("")}function $(e,t){var r={};return(e=S().array(e)?e:e&&[e]||e).forEach((function(e){q(r,e.apply)})),t&&(r=U(r)),r}function X(e,t){return(e=S().array(e)?e:e&&[e]||e).map((function(e){return W(W({},e),{},{target:t})}))}function G(e){var t=arguments.length>1&&void 0!==arguments[1]?arguments[1]:1;return(e=S().array(e)?e:e&&[e]||e).map((function(e){var r=e.apply&&e.apply.transform;if(r){r=S().array(r)?k()(r):[r];for(var n=0;n<t;n++)r.unshift({});e=W(W({},e),{},{apply:W(W({},e.apply),{},{transform:r})})}return e}))}var K=r(597),Z={},J=r(173).walknSetExport;J(Z,"filter",r(663)),J(Z,"boxShadow",r(664)),J(Z,"transform",r(49)),J(Z,"textShadow",r(954)),J(Z,"backgroundColor",r(34));const Q=Z;var ee={},te=r(173).walknSetExport;te(ee,"filter",r(663)),te(ee,"boxShadow",r(664)),te(ee,"transform",r(49)),te(ee,"typed/any",r(360)),te(ee,"textShadow",r(954)),te(ee,"typed/bool",r(308)),te(ee,"typed/color",r(142)),te(ee,"typed/multi",r(643)),te(ee,"typed/ratio",r(361)),te(ee,"typed/length",r(616)),te(ee,"typed/number",r(93)),te(ee,"typed/shadow",r(936)),te(ee,"typed/svgAttr",r(575)),te(ee,"backgroundColor",r(34));var re=ee.backgroundColor,ne=ee.boxShadow,oe=ee.filter,ie=ee.textShadow,ae=ee.transform,se=ee.typed;const le=ee;var ce=r(275);function ue(e,t){var r=Object.keys(e);if(Object.getOwnPropertySymbols){var n=Object.getOwnPropertySymbols(e);t&&(n=n.filter((function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable}))),r.push.apply(r,n)}return r}function pe(e){for(var t=1;t<arguments.length;t++){var r=null!=arguments[t]?arguments[t]:{};t%2?ue(Object(r),!0).forEach((function(t){B()(e,t,r[t])})):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(r)):ue(Object(r)).forEach((function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(r,t))}))}return e}var fe=pe(pe({},Q),{},{height:ce.Bw,width:ce.Bw,top:ce.Bw,left:ce.Bw,right:ce.Bw,bottom:ce.Bw,marginTop:ce.Bw,marginLeft:ce.Bw,marginRight:ce.Bw,marginBottom:ce.Bw,paddingTop:ce.Bw,paddingLeft:ce.Bw,paddingRight:ce.Bw,paddingBottom:ce.Bw,borderRadius:ce.Bw,borderTopColor:ce.yW,borderLeftColor:ce.yW,borderRightColor:ce.yW,borderBottomColor:ce.yW,borderTopWidth:ce.Bw,borderLeftWidth:ce.Bw,borderRightWidth:ce.Bw,borderBottomWidth:ce.Bw,transformOrigin:(0,ce.m3)(2),zIndex:ce.ai,opacity:ce.CG,fill:ce.yW,stroke:ce.yW,strokeWidth:ce.Bw,strokeOpacity:ce.CG,fillOpacity:ce.CG,strokeDashoffset:ce.Bw,cx:ce.U6,cy:ce.U6,r:ce.U6,rx:ce.U6,ry:ce.U6,x:ce.U6,y:ce.U6,x1:ce.U6,y1:ce.U6,x2:ce.U6,y2:ce.U6});function de(e){var t=K.xk[e],r=t&&t.types;if(!r)return ce.bz;for(var n=0;n<r.length;n++)switch(r[n]){case"length":case"length-percentage-calc":return ce.Bw;case"number":case"integer":return ce.ai;case"color":return ce.yW}return ce.bz}function ge(e,t,r,n,o,i,a){var s;null===(s=i[t.split("_")[0]])||void 0===s||s.release(t,r,n,o,i,a)}function he(e,t,r,n,o){Object.keys(r).forEach((function(i){r[i].demux(i,e,t,n,o)}))}function ve(e,t,r,n,o,i,a){var s={};return e&&Object.keys(e).forEach((function(t){fe[t]?s[t]=e[t]:(0,K.VP)(t,e[t])&&(0,K.J0)(t)?(0,K.Tl)(t,e[t],s):s[t]=e[t]})),s&&Object.keys(s).forEach((function(l){fe[l]?(o[l]=fe[l]).mux(l,s[l],t,n,r,i,a):(0,K.VP)(l,e[l])?(o[l]=de(l)).mux(l,s[l],t,n,r,i,a):(o[l]=ce.bz).mux(l,s[l],t,n,r,i,a)})),{}}function ye(e,t,r,n,o){o=o&&{};var i={},a=e.reduce((function(e,a){var s={};return n[a.target]=n[a.target]||{},t[a.target]=t[a.target]||{},r[a.target]=r[a.target]||{},a.type&&"Tween"!==a.type?e.push(pe({},a)):(!o&&q(i[a.target]=i[a.target]||{},a.apply),ve(a.apply,s,t[a.target],r[a.target],n[a.target],!0),e.push(pe(pe({},a),{},{apply:s}))),e}),[]);return!o&&Object.keys(i).forEach((function(e){return ve(i[e],{},{},r[e],n[e])})),a}const me=__webpack_require__(/*! tween-axis/dist/TweenAxisWasm */ "./node_modules/tween-axis/dist/TweenAxisWasm.js");var be=r.n(me);function xe(e,t,r){return t=f()(t),u()(e,we()?Reflect.construct(t,r||[],f()(e).constructor):t.apply(e,r))}function we(){try{var e=!Boolean.prototype.valueOf.call(Reflect.construct(Boolean,[],(function(){})))}catch(e){}return(we=function(){return!!e})()}var _e,Oe,Re=[],Pe=function(e){function t(e,r){if(a()(this,t),Re.length){var n=Re.pop();return n.scope=r,S().array(e)?(n.localLength=1,n.mount(e,r)):e.Axis&&n.mount(e.Axis,r),u()(void 0,n)}return xe(this,t,arguments)}return g()(t,e),l()(t,[{key:"destroy",value:function(){this.scope=void 0,this.duration=0,this.__cPos=0,this.__cIndex=0,this.__cMaxKey=1,this.__marks&&(this.__marks.length=0),this.__marksLength&&(this.__marksLength.length=0),this.__marksKeys&&(this.__marksKeys.length=0),this.__activeProcess&&(this.__activeProcess.length=0),this.__outgoing&&(this.__outgoing.length=0),this.__incoming&&(this.__incoming.length=0),this.__processors.length=0,this.__config.length=0,"function"==typeof this.resetWasm&&this.resetWasm(),Re.push(this)}}])}(be()),Se=r(767),Te="undefined"!=typeof window,De=(Te&&(Oe=" -webkit- -moz- -o- -ms- ".split(" "),!!("ontouchstart"in window||window.DocumentTouch&&document instanceof DocumentTouch)||(_e=["(",Oe.join("touch-enabled),("),"heartz",")"].join(""),window.matchMedia&&window.matchMedia(_e).matches)),Te?{prefix:/webkit/i.test(navigator.appVersion)?"webkit":/firefox/i.test(navigator.userAgent)?"Moz":/trident/i.test(navigator.userAgent)?"ms":"opera"in window?"O":"",dashedPrefix:/webkit/i.test(navigator.appVersion)?"-webkit-":/firefox/i.test(navigator.userAgent)?"-moz-":/trident/i.test(navigator.userAgent)?"-ms-":"opera"in window?"-o-":""}:{prefix:"",dashedPrefix:""}),ke={onPageHided:[],onPageShown:[],dragging:[],dragEnabled:[],dragEnabledDesc:[],fingers:{},nbFingers:0,dragstartAnywhere:function(e){var t,r,n,o=ke,i=o.dragEnabled.indexOf(this),a=[];if(-1!==i){o.nbFingers||(je.addEvent(document,{touchmove:o.dragAnywhere,mousemove:o.dragAnywhere,touchend:o.dropAnywhere,mouseup:o.dropAnywhere}),je.addEvent(this,{click:o.dropWithoutClick},null,null,null,!0)),e.changedTouches&&e.changedTouches.length?a=e.changedTouches:a.push(e);for(var s=0,l=a.length;s<l;s++)if(r=a[s],!(n=o.dragEnabledDesc[i]).nbFingers)for(o.nbFingers++,o.fingers[r.identifier]=o.fingers[r.identifier]||[],o.fingers[r.identifier].push(n),n.nbFingers++,n._startPos.x="MS"==De.prefix?r.x:r.pageX,n._startPos.y="MS"==De.prefix?r.y:r.pageY,n._startTs=e.timeStamp,n._lastPos.x="MS"==De.prefix?r.x:r.pageX,n._lastPos.y="MS"==De.prefix?r.y:r.pageY,t=0;t<n.dragstart.length;t++)n.dragstart[t][0].call(n.dragstart[t][1]||this,e,r,n)}},dragAnywhere:function(e){var t,r,n,o=this,i=ke,a=[];ke.dragging[0],e.changedTouches&&e.changedTouches.length?a=e.changedTouches:a.push(e);for(var s=0,l=a.length;s<l;s++)r=a[s],i.fingers[r.identifier],i.fingers[r.identifier]&&i.fingers[r.identifier].forEach((function(i){if(n)return i._lastPos.x=i._startPos.x="MS"==De.prefix?r.x:r.pageX,void(i._lastPos.y=i._startPos.y="MS"==De.prefix?r.y:r.pageY);for(i._lastPos.x="MS"==De.prefix?r.x:r.pageX,i._lastPos.y="MS"==De.prefix?r.y:r.pageY,t=0;t<i.drag.length;t++)n=!1===i.drag[t][0].call(i.drag[t][1]||o,e,r,i)}))},dropWithoutClick:function(e){ke.preventNextClick&&(e.preventDefault(),e.stopPropagation(),e.stopImmediatePropagation(),ke.preventNextClick=!1),je.removeEvent(this,{click:this.dropWithoutClick})},dropAnywhere:function(e){var t,r,n,o=this,i=ke,a=[];e.changedTouches&&e.changedTouches.length?a=e.changedTouches:a.push(e);for(var s=0,l=a.length;s<l;s++)r=a[s],i.nbFingers--,i.fingers[r.identifier]&&i.fingers[r.identifier].forEach((function(i){for(i.nbFingers--,n=n||i.mouseDrag&&e.timeStamp-i._startTs>250,i._lastPos.x="MS"==De.prefix?r.x:r.pageX,i._lastPos.y="MS"==De.prefix?r.y:r.pageY,t=0;t<i.dropped.length;t++)i.dropped[t][0].call(i.dropped[t][1]||o,e,r,i)})),i.fingers[r.identifier]=null;n&&(i.preventNextClick=!0),i.nbFingers||je.removeEvent(document,{touchmove:i.dragAnywhere,mousemove:i.dragAnywhere,touchend:i.dropAnywhere,mouseup:i.dropAnywhere})},getDraggable:function(e,t,r){var n,o=this.dragEnabled.indexOf(e);return-1===o?(this.dragEnabled.push(e),this.dragEnabledDesc.push(n={mouseDrag:t,touchDrag:r,nbFingers:0,locks:0,_startPos:{x:0,y:0},_lastPos:{x:0,y:0},dragstart:[],drag:[],dragEnd:[],dropped:[]}),je.addEvent(e,{mousedown:t&&this.dragstartAnywhere,touchstart:r&&this.dragstartAnywhere},null,null,null,!0)):n=this.dragEnabledDesc[o],n},freeDraggable:function(e){var t=this.dragEnabled.indexOf(e);-1!==t&&(this.dragEnabled.splice(t,1),this.dragEnabledDesc.splice(t,1),je.removeEvent(e,{mousedown:this.dragstartAnywhere,touchstart:this.dragstartAnywhere}))},addEvent:function(e,t,r,n){e.addEventListener?e.addEventListener(t,r,n):e.attachEvent&&e.attachEvent("on"+t,r.related=function(t){return r.call(e,t)})},removeEvent:function(e,t,r,n){e.removeEventListener?e.removeEventListener(t,r,n):e.attachEvent&&e.detachEvent("on"+t,r.related)},rmDragFn:function(e,t,r){for(var n=0,o=e.length;n<o;n++)if(e[n][0]===t)return e.splice(n,1);console.warn("Rm event : Listener not found !!")}},je={addEvent:function(e,t,r,n){var o=!(arguments.length>4&&void 0!==arguments[4])||arguments[4],i=arguments.length>5?arguments[5]:void 0;if(Se.object(t))for(var a in t)t.hasOwnProperty(a)&&t[a]&&this.addEvent(e,a,t[a],n,o,i);else"dragstart"===t?ke.getDraggable(e,n,o).dragstart.push([r]):"drag"===t?ke.getDraggable(e,n,o).drag.push([r]):"dropped"===t?ke.getDraggable(e,n,o).dropped.push([r]):e.addEventListener?e.addEventListener(t,r,{passive:!1}):e.attachEvent&&e.attachEvent("on"+t,r.related=function(t){return r.call(e,t)})},removeEvent:function(e,t,r,n,o){var i;if(Se.object(t))for(var a in t)t.hasOwnProperty(a)&&this.removeEvent(e,a,t[a],n);else/^(drag|drop)/.test(t)?(i=ke.getDraggable(e),ke.rmDragFn(i[t],r,n),i.dragstart.length||i.drag.length||i.dragEnd.length||i.dropped.length||ke.freeDraggable(e)):e.removeEventListener?e.removeEventListener(t,r,o):e.attachEvent&&e.detachEvent("on"+t,r.related)},offset:function(e){for(var t={top:0,left:0,width:e.offsetWidth,height:e.offsetHeight};e;)t.top=t.top+parseInt(e.offsetTop),t.left=t.left+parseInt(e.offsetLeft),e=e.offsetParent;return t},findReactParents:function(e){var t,r=[e];for(var n in e)if(n.startsWith("__reactInternalInstance$")||n.startsWith("__reactFiber$")){for(t=e[n];t.return;)t.stateNode&&!r.includes(t.stateNode)&&r.push(t.stateNode),t=t.return;return r}return e.parentNode&&this.findReactParents(e.parentNode)}};const Ee=je;function Me(e,t){var r=Object.keys(e);if(Object.getOwnPropertySymbols){var n=Object.getOwnPropertySymbols(e);t&&(n=n.filter((function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable}))),r.push.apply(r,n)}return r}function Be(e){for(var t=1;t<arguments.length;t++){var r=null!=arguments[t]?arguments[t]:{};t%2?Me(Object(r),!0).forEach((function(t){B()(e,t,r[t])})):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(r)):Me(Object(r)).forEach((function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(r,t))}))}return e}var Ae=r(767),Ce=r(959),We=function(e){return"number"==typeof e?e?e<0?-1:1:e==e?e:NaN:NaN},Ie=Math.abs,Le=Math.floor,Fe=(Math.round,Math.min),Ne=Math.max,ze=function(){return(arguments.length>0&&void 0!==arguments[0]?arguments[0]:0).toFixed(3)},Ue=function(){return l()((function e(t){a()(this,e);var r=this._={};r.conf=Be(Be({},this.constructor.config),t),this.active=!1,r.pos=t.value||0,r.refFPS=16,r.min=t.min||0,r.max=t.max||0,r.currentStop=0,r.lastInertiaPos=0,r.stops=r.conf.stops,r.disabled=r.conf.disabled,r.wayPoints=r.conf.wayPoints,r.inertiaFn=Ce.easePolyOut,r.targetWayPointIndex=0,this._detectCurrentSnap()}),[{key:"updateConf",value:function(e){var t=this._;t.min=e.min||0,t.max=e.max||0,t.stops=e.stops,t.disabled=e.disabled,t.wayPoints=e.wayPoints,t.conf.willStop=e.willStop,t.conf.willSnap=e.willSnap,t.conf.onStop=e.onStop,t.conf.onSnap=e.onSnap,t.conf.shouldLoop=e.shouldLoop}},{key:"startMove",value:function(){var e=this._;e.baseTS=e.startTS=Date.now()/1e3,e.lastVelocity=e.lastIVelocity=0,e.lastAccel=0,e.posDiff=0,e.loopsDiff=0,this.active=!0,this.holding=!0,e.inertia=!1}},{key:"hold",value:function(e){var t,r=this._,n=void 0!==r.lastHoldPos?e-r.lastHoldPos:0,o=Date.now()/1e3,i=o-r.baseTS,a=e,s=n/i;if(r.lastHoldPos=e,r.lastBaseTs||(r.lastBasePos=e,r.lastBaseTs=r.baseTS),i<.003||((s<=0&&r.lastVelocity>0||s>=0&&r.lastVelocity<0||Ie(s)<Ie(.2*r.lastVelocity))&&o-r.lastBaseTs>.15?(r.lastBasePos=e,r.lastBaseTs=o,r.lastVelocity=0,r.lastIVelocity=0,r.baseTS=o,r.targetDist=0,r.lastInertiaPos=0):s<=0&&r.lastVelocity>0||s>=0&&r.lastVelocity<0||Ie(s)<Ie(.2*r.lastVelocity)||(r.lastIVelocity=s,r.lastVelocity=(a-r.lastBasePos)/(o-r.lastBaseTs),r.baseTS=o,r.targetDist=0,r.lastInertiaPos=0,r.targetWayPoint=void 0,r.targetWayPointIndex=void 0)),r.conf.bounds&&(a>r.max?a=r.max:a<r.min&&(a=r.min)),r.conf.shouldLoop)for(;t=r.conf.shouldLoop(a,n);)a+=t;r.pos=a}},{key:"release",value:function(){var e,t,r=this._;We(r.lastVelocity),this.holding=!1,function(e){var t=We(e.lastVelocity);e.disabled?(e.loopsTarget=0,e.loopsVelSum=0,e.targetDist=0,e.targetDuration=0):(e.loopsTarget=Le(Math.log(.05/Ie(e.lastVelocity))/Math.log(.9)),e.loopsVelSum=(Math.pow(.9,e.loopsTarget)-Ie(e.lastVelocity))/(.9-1),e.targetDist=e.loopsVelSum*e.refFPS*t/1e3||0,e.targetDuration=Ie(e.loopsTarget*e.refFPS*t)||0)}(r),r.lastHoldPos=void 0,r.lastBasePos=void 0,r.lastBaseTs=void 0,r.holding=!1,r.conf.bounds&&r.conf.snapToBounds&&(r.pos+r.targetDist>r.max?(r.targetDist=r.max-r.pos,r.targetDuration=Ie(10*r.targetDist)):r.pos+r.targetDist<r.min&&(r.targetDist=r.min-r.pos,r.targetDuration=Ie(10*r.targetDist))),r.targetDuration||(r.targetDuration=50),this.active=!0,r.inertia=!0,r.lastInertiaPos=0,r.inertiaStartTm=r.inertiaLastTm=Date.now(),this._doSnap(null,500),null===(e=(t=r.conf).willEnd)||void 0===e||e.call(t,r.targetDist+r.pos,r.targetDist,r.targetDuration)}},{key:"update",value:function(){var e,t,r=arguments.length>0&&void 0!==arguments[0]?arguments[0]:Date.now(),n=this._,o=n.inertiaFn((r-n.inertiaStartTm)/n.targetDuration)*n.targetDist;if(!n.inertia)return n.pos;var i=o-n.lastInertiaPos;if(n.lastInertiaPos=o,r-n.inertiaStartTm>=n.targetDuration&&(n.inertia=this.active=!1,n.lastInertiaPos=i=0,n.targetDist=0,n.targetWayPoint&&(i=n.targetWayPoint.at-n.pos,n.currentWayPoint=n.targetWayPoint,n.currentWayPointIndex=n.targetWayPointIndex,n.targetWayPoint=null,n.targetWayPointIndex=null),n.conf.onStop&&n.conf.onStop(n.pos,n.currentWayPoint),n.conf.onSnap&&n.conf.onSnap(n.currentWayPointIndex,n.currentWayPoint)),i=i||0,e=n.pos+i,n.conf.shouldLoop)for(;t=n.conf.shouldLoop(e,i);)e+=t,n.inertia;return n.pos=e,e}},{key:"setPos",value:function(e){var t=this._;if(t.inertia=!1,this.active=!1,t.lastInertiaPos=0,t.targetDist=0,t.inertiaStartTm=0,t.inertiaLastTm=0,t.targetDuration=0,t.conf.shouldLoop){for(var r,n=e;r=t.conf.shouldLoop(n,t.pos-e);)n+=r;e=n}t.pos=e,t.conf.bounds&&(t.pos=Ne(t.pos,t.min),t.pos=Fe(t.pos,t.max))}},{key:"setWayPoints",value:function(e){this._.wayPoints=e,this._detectCurrentSnap()}},{key:"teleport",value:function(e){var t=this._;if(!t.inertia)return t.pos+=e;t.pos+=e}},{key:"dispatch",value:function(e){var t=arguments.length>1&&void 0!==arguments[1]?arguments[1]:500,r=this._,n=Date.now();this.active=!0,r.inertia&&We(e)===We(r.targetDist)?(r.targetDist+=e,r.targetDuration+=t/2):(r.inertia=!0,r.lastInertiaPos=0,r.inertiaStartTm=r.inertiaLastTm=n,r.targetDist=e,r.targetDuration=t),r.conf.bounds&&(r.pos+r.targetDist>r.max?(r.targetDist=r.max-r.pos,r.targetDuration=Ie(10*r.targetDist)):r.pos+r.targetDist<r.min&&(r.targetDist=r.min-r.pos,r.targetDuration=Ie(10*r.targetDist))),this._doSnap(We(e),750)}},{key:"_detectCurrentSnap",value:function(){var e,t=this._,r=t.pos;if(t.wayPoints&&t.wayPoints.length)for(e=0;e<t.wayPoints.length;e++)if(ze(t.wayPoints[e].at)===ze(r))return t.currentWayPoint=t.wayPoints[e],t.currentWayPointIndex=e,e}},{key:"_doSnap",value:function(e){var t,r,n,o,i=arguments.length>1&&void 0!==arguments[1]?arguments[1]:2e3,a=this._,s=a.targetDist+(a.pos-(a.lastInertiaPos||0)),l=0;if(a.wayPoints&&a.wayPoints.length){if(a.conf.shouldLoop)for(;o=a.conf.shouldLoop(s,0);)s+=o,l+=o;for(n=0;n<a.wayPoints.length&&!(a.wayPoints[n].at>s);n++);if(n===a.wayPoints.length?n--:0===n?n=0:(r=(a.wayPoints[n].at-a.wayPoints[n-1].at)/2,r=a.wayPoints[n-1].at+r*((a.wayPoints[n].gravity||1)/(a.wayPoints[n-1].gravity||1)),e?e<0&&n--:s<r&&n--),a.conf.maxJump&&Ae.number(a.currentWayPointIndex)){var c=n-a.currentWayPointIndex;Ie(c)>a.conf.maxJump&&(n=a.currentWayPointIndex+We(c)*a.conf.maxJump)}t=a.wayPoints[n].at,a.conf.willSnap&&a.conf.willSnap(n,a.wayPoints[n]),a.lastInertiaPos=a.lastInertiaPos||0,t=t-(a.pos-a.lastInertiaPos)-l,a.targetDuration=Ne(50,Fe(i,Ie(a.targetDuration/a.targetDist*t)))||0,a.targetDist=t,a.targetWayPoint=a.wayPoints[n],a.targetWayPointIndex=n}else t=~~(a.pos-a.lastInertiaPos),a.conf.infinite||(t>a.max?(t=a.max-t,a.targetDuration=Fe(i,Ie(a.targetDuration/a.targetDist*t)),a.targetDist=t):t<a.min&&(t=a.min-t,a.targetDuration=Fe(i,Ie(a.targetDuration/a.targetDist*t)),a.targetDist=t))}},{key:"setBounds",value:function(e,t){var r=this._;r.min=e,r.max=t}},{key:"isInbound",value:function(e){var t=this._,r=void 0!==t.lastHoldPos?e-t.lastHoldPos:0,n=(t.targetDist||0)+(t.pos-(t.lastInertiaPos||0))+r;return n>=t.min&&n<=t.max}}])}();function Ve(e,t){(null==t||t>e.length)&&(t=e.length);for(var r=0,n=Array(t);r<t;r++)n[r]=e[r];return n}function He(e,t){var r=Object.keys(e);if(Object.getOwnPropertySymbols){var n=Object.getOwnPropertySymbols(e);t&&(n=n.filter((function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable}))),r.push.apply(r,n)}return r}function qe(e){for(var t=1;t<arguments.length;t++){var r=null!=arguments[t]?arguments[t]:{};t%2?He(Object(r),!0).forEach((function(t){B()(e,t,r[t])})):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(r)):He(Object(r)).forEach((function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(r,t))}))}return e}function Ye(e,t,r){return t=f()(t),u()(e,$e()?Reflect.construct(t,r||[],f()(e).constructor):t.apply(e,r))}function $e(){try{var e=!Boolean.prototype.valueOf.call(Reflect.construct(Boolean,[],(function(){})))}catch(e){}return($e=function(){return!!e})()}function Xe(e,t,r,n){var o=E()(f()(1&n?e.prototype:e),t,r);return 2&n&&"function"==typeof o?function(e){return o.apply(r,e)}:o}B()(Ue,"config",{bounds:!0,snapToBounds:!0});var Ge,Ke,Ze=new Function("try {return this===window;}catch(e){ return false;}")(),Je=S().array,Qe=[];function et(e){var t={};for(var r in e)(r.length<5||"a"!==r[0]||"t"!==r[1]||"t"!==r[2]||"r"!==r[3]||"_"!==r[4])&&(t[r]=e[r]);return t}var tt=function e(){var t=0,r=Date.now(),n=r-Ke;for(Ke=r;t<Qe.length;t++)Qe[t].cpos=Math.min(n+Qe[t].cpos,Qe[t].duration),Qe[t].apply(Qe[t].cpos,Qe[t].duration),Qe[t].cpos==Qe[t].duration&&(Qe[t].cb&&setTimeout(Qe[t].cb),Qe.splice(t,1),t--);Qe.length?setTimeout(e,16):Ge=!1},rt=function(e){function t(e){var r,n,o,i;a()(this,t),i=Ye(this,t,arguments),B()(i,"axes",{}),B()(i,"_scrollWatcherByAxis",{}),B()(i,"_swap",{}),B()(i,"_updateNodeInertia",(function(){var e,t=i._,r=t.activeInertia.length;i._inertiaRaf&&cancelAnimationFrame(i._inertiaRaf);for(var n=0;r>n;n++)((e=t.activeInertia[n]).inertia.x.active||e.inertia.x.holding)&&(e.target.scrollLeft=~~e.inertia.x.update()),(e.inertia.y.active||e.inertia.y.holding)&&(e.target.scrollTop=~~e.inertia.y.update()),e.inertia.x.active||e.inertia.y.active||e.inertia.x.holding||e.inertia.y.holding||(t.activeInertia.slice(n,1),n--,r--);i._inertiaRaf=0!==r?requestAnimationFrame(i._updateNodeInertia):null}));var s=i._={refs:{},muxByTarget:{}};return s.box={x:100,y:100,z:800},i.__isTweener=!0,s._rafLoop=i._rafLoop.bind(i),s.rootRef=i.props.forwardedRef||v().createRef(),s.options=qe({maxClickTm:200,maxClickOffset:5},e.tweenerOptions||{}),s.tweenRefCSS={},s.tweenRefs={},s.tweenRefMaps={},s.iMapOrigin={},s.tweenRefInitialData={},s.tweenEnabled=!0,s.tweenRefOrigin={},s.tweenRefOriginCss={},s.muxDataByTarget=s.muxDataByTarget||{},s.tweenRefDemuxed=s.tweenRefDemuxed||{},s.tweenRefTargets=s.tweenRefTargets||[],s.runningAnims=s.runningAnims||[],s.scrollHook=[],s.activeInertia=[],s.defaultAxesPosition=null===(r=e.tweenerOptions)||void 0===r?void 0:r.defaultAxesPosition,null===(n=e.tweenerOptions)||void 0===n||null===(o=n.ref)||void 0===o||o.call(n,i),Ze&&window.addEventListener("resize",i._.onResize=function(e){var t,r;i._updateBox(),i._updateTweenRefs(),null===(t=s.rootRef)||void 0===t||null===(t=t.current)||void 0===t||null===(r=t.windowDidResize)||void 0===r||r.call(t,e)}),i}return g()(t,e),l()(t,[{key:"tweenRef",value:function(e){var t=arguments.length>1&&void 0!==arguments[1]?arguments[1]:{},r=arguments.length>2&&void 0!==arguments[2]?arguments[2]:{},n=arguments.length>4?arguments[4]:void 0,o=arguments.length>5?arguments[5]:void 0,i=arguments.length>6?arguments[6]:void 0,a=this._,s={},l={};return a.tweenRefs[e]||a.tweenRefTargets.push(e),!a.tweenRefs[e]||!i&&a.iMapOrigin[e]===r&&x()(r,a.iMapOrigin[e])&&a.tweenRefOriginCss[e]===t&&x()(t,a.tweenRefOriginCss[e])?a.tweenRefs[e]?he(a.tweenRefMaps[e],a.tweenRefCSS[e],a.muxByTarget[e],a.muxDataByTarget[e],a.box):(a.iMapOrigin[e]=r,t=t||{},r=r||{},a.tweenRefs[e]=!0,a.muxByTarget[e]=a.muxByTarget[e]||{},a.muxDataByTarget[e]=a.muxDataByTarget[e]||{},a.tweenRefOriginCss[e]=t,a.tweenRefMaps[e]=a.tweenRefMaps[e]||{},a.tweenRefOrigin[e]?(t=qe(qe({},t),ve(r,s,l,a.muxDataByTarget[e],a.muxByTarget[e],!1,!0)),Object.keys(l).forEach((function(t){return a.tweenRefMaps[e][t]=S().number(a.tweenRefMaps[e][t])?a.tweenRefMaps[e][t]-l[t]:0})),Object.keys(s).forEach((function(t){return a.tweenRefMaps[e][t]+=s[t]}))):(t=qe(qe({},t),ve(r,s,l,a.muxDataByTarget[e],a.muxByTarget[e])),s=Object.assign({},l,s||{}),Object.keys(s).forEach((function(t){return a.tweenRefMaps[e][t]=(a.tweenRefMaps[e][t]||0)+s[t]}))),a.tweenRefOrigin[e]=qe({},s),a.tweenRefCSS[e]=t,he(s=a.tweenRefMaps[e],t,a.muxByTarget[e],a.muxDataByTarget[e],a.box)):(a.iMapOrigin[e]=r,a.tweenRefOriginCss[e]=t,r=r||{},t=qe(qe({},t=t||{}),ve(r,s,l,a.muxDataByTarget[e],a.muxByTarget[e],!1,!0)),Object.keys(a.tweenRefOrigin[e]).forEach((function(t){return a.tweenRefMaps[e][t]-=a.tweenRefOrigin[e][t]})),Object.keys(l).forEach((function(t){return a.tweenRefMaps[e][t]=S().number(a.tweenRefMaps[e][t])?a.tweenRefMaps[e][t]:l[t]})),Object.keys(s).forEach((function(t){return a.tweenRefMaps[e][t]+=s[t]})),Object.keys(a.tweenRefOrigin[e]).forEach((function(t){ge(0,t,a.tweenRefMaps[e],a.tweenRefCSS[e],a.muxDataByTarget[e],a.muxByTarget[e])})),Object.keys(a.tweenRefCSS[e]).forEach((function(r){!a.tweenRefCSS[e][r]||a.muxByTarget[e][r]||t[r]||delete a.tweenRefCSS[e][r]})),Object.keys(t).forEach((function(r){a.tweenRefCSS[e][r]===t[r]||a.muxByTarget[e][r]||(a.tweenRefCSS[e][r]=t[r])})),a.tweenRefOrigin[e]=qe({},s),he(a.tweenRefMaps[e],a.tweenRefCSS[e],a.muxByTarget[e],a.muxDataByTarget[e],a.box),this._updateTweenRef(e,!0)),o?{style:et(a.tweenRefCSS[e])}:{style:et(a.tweenRefCSS[e]),ref:S().function(n)?function(t){return a.refs[e]=n(t)}:n?function(t){return a.refs[e]=n.current=t}:function(t){return a.refs[e]=t}}}},{key:"rmTweenRef",value:function(e){this._.tweenRefs[e]&&(this._.tweenRefTargets.splice(this._.tweenRefTargets.indexOf(e),1),delete this._.tweenRefs[e],delete this._.muxByTarget[e],delete this._.muxDataByTarget[e],delete this._.iMapOrigin[e],delete this._.tweenRefOrigin[e],delete this._.tweenRefCSS[e],delete this._.tweenRefMaps[e],delete this._.refs[e])}},{key:"resetTweenable",value:function(){for(var e=this,t=this._,r=arguments.length,n=new Array(r),o=0;o<r;o++)n[o]=arguments[o];n.forEach((function(r){e.tweenRef(r,t.tweenRefOriginCss[r],t.iMapOrigin[r],null,null,null,!0)})),this._updateTweenRefs()}},{key:"updateRefStyle",value:function(e,t,r){var n,o=this,i=this._;return Je(e)&&Je(t)?e.map((function(e,n){return o.updateRefStyle(e,t[n],r)})):Je(e)?e.map((function(e){return o.updateRefStyle(e,t,r)})):i.tweenRefMaps[e]?(n=ve(t,i.tweenRefMaps[e],{},i.muxDataByTarget[e],i.muxByTarget[e]),Object.assign(i.tweenRefCSS[e],n),Object.assign(i.tweenRefOriginCss[e],n),he(i.tweenRefMaps[e],i.tweenRefCSS[e],i.muxByTarget[e],i.muxDataByTarget[e],i.box),void this._updateTweenRef(e,!0)):console.warn("[react-voodoo] Cannot update styles: unknown Node id '",e,"'")}},{key:"getTweenableRef",value:function(e){var t,r;return 1===(null===(t=this._.refs[e])||void 0===t?void 0:t.nodeType)?this._.refs[e]:null!==(r=this._.refs[e])&&void 0!==r&&null!==(r=r._)&&void 0!==r&&null!==(r=r.rootRef)&&void 0!==r&&r.current&&S().element(this._.refs[e]._.rootRef.current)?this._.refs[e]._.rootRef.current:void(this._.tweenRefs[e]||console.warn("[react-voodoo] getTweenableRef: no registered node found for id '",e,"'"))}},{key:"getRootNode",value:function(){try{return this._.rootRef&&this._.rootRef.current}catch(e){return this._.rootRef&&this._.rootRef.current}}},{key:"pushAnim",value:function(e,r){var n,o,i=this,a=!(arguments.length>2&&void 0!==arguments[2])||arguments[2],s=this._,l={};if(Je(e)?n=e:(n=e.anims,e.initial),n instanceof Pe||(n=ye(n,l,this._.muxDataByTarget,this._.muxByTarget),n=new Pe(n,this._.tweenRefMaps),Object.keys(l).forEach((function(e){return i._.tweenRefMaps[e]&&Object.assign(i._.tweenRefMaps[e],qe(qe({},l[e]),i._.tweenRefMaps[e]))||(o=console.warn("[react-voodoo] pushAnim: cannot find tween target '",e,"' in",t.displayName)||!0)}))),!o)return new Promise((function(e){n.run(i._.tweenRefMaps,(function(){var t=i._.runningAnims.indexOf(n);-1!=t&&i._.runningAnims.splice(t,1),Object.keys(l).forEach((function(e){Object.keys(l[e]).forEach((function(t){ge(0,t,s.tweenRefMaps[e],s.tweenRefCSS[e],s.muxDataByTarget[e],s.muxByTarget[e],a)}))})),n.destroy(),e(n)})),i._.runningAnims.push(n),i._.live||(i._.live=!0,requestAnimationFrame(i._._rafLoop=i._._rafLoop||i._rafLoop.bind(i)))})).then((function(e){return r&&r(e)}))}},{key:"applyTweenState",value:function(e,t,r){var n=this,o={},i={};ve(t,o,i,this._.muxDataByTarget[e],this._.muxByTarget[e],!0),Object.keys(o).map((function(t){return n._.tweenRefMaps[e][t]=(!r&&n._.tweenRefMaps[e][t]||i[t])+o[t]}))}},{key:"initAxis",value:function(e,t,r){var n,o,i,a=this,s=t.inertia,l=t.scrollableArea,c=void 0===l?0:l,u=t.scrollableBounds,p=t.scrollableWindow,f=t.defaultPosition,d=t.scrollFirst,g=this._,h=this.axes[e],v=u,y=!r&&h?h.scrollPos:(null===(n=g.defaultAxesPosition)||void 0===n?void 0:n[e])||f||v&&v.min||0,m=Math.max(h&&h.scrollableArea||0,c),b=Math.max(h&&h.scrollableWindow||0,p),x=h?h.targetPos:y,w=h?h.inertia:new Ue(qe(qe({disabled:!s},s||{}),{},{value:y})),_={scrollFirst:d,tweenAxis:h&&h.tweenAxis||[],scrollPos:y,targetPos:x,inertia:w,scrollableWindow:b,scrollableBounds:v,scrollableArea:m,scrollTo:function(t,r,n,o){return a.scrollTo(t,r,e,n,o)}};this.axes[e]=_,!s&&(w._.disabled=!0),s&&w&&!w.active&&(w._.pos=y),s&&w&&w.updateConf(s),w&&v?null===(o=w.setBounds)||void 0===o||o.call(w,v.min,v.max):w&&(null===(i=w.setBounds)||void 0===i||i.call(w,0,m))}},{key:"_getAxis",value:function(){var e=this,t=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"scrollY",r=this._;return this.axes[t]=this.axes[t]||{tweenAxis:[],scrollPos:r.options.initialScrollPos&&r.options.initialScrollPos[t]||0,targetPos:0,scrollableWindow:0,scrollableArea:0,inertia:new Ue(qe({value:r.options.initialScrollPos&&r.options.initialScrollPos[t]||0},r.options.axes&&r.options.axes[t]&&r.options.axes[t].inertia||{})),scrollTo:function(r,n,o,i){return e.scrollTo(r,n,t,o,i)}},this.axes[t]}},{key:"getAxisState",value:function(e){var t=this,r=(this._,{});return this.axes&&Object.keys(this.axes).forEach((function(e){return r[e]=t.axes[e].targetPos||t.axes[e].scrollPos})),r}},{key:"getScrollPos",value:function(){var e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"scrollY";return this._,this.axes[e]?this.axes[e].targetPos||this.axes[e].scrollPos:0}},{key:"scrollTo",value:function(e){var t=this,r=arguments.length>1&&void 0!==arguments[1]?arguments[1]:0,n=arguments.length>2&&void 0!==arguments[2]?arguments[2]:"scrollY",o=arguments.length>3?arguments[3]:void 0,i=arguments.length>4?arguments[4]:void 0,a=this._;return Ze?new Promise((function(s,l){if(t.axes&&t.axes[n]){var c,u,p,f=t.axes[n].targetPos,d=function(e){var r,o;e=~~(1e4*e)/1e4,t.axes[n].targetPos=t.axes[n].scrollPos=e,~~e!==f&&(t.axisDidScroll(~~e,n),null===(r=a.rootRef)||void 0===r||null===(r=r.current)||void 0===r||null===(o=r.componentDidScroll)||void 0===o||o.call(r,~~e,n)),t._updateTweenRefs()};if(e=Math.max(0,e),e=Math.min(e,t.axes[n].scrollableArea||0),t.axes[n].targetPos=e,r)t._runScrollGoTo(n,e,r,A[o],i,d,s);else null===(c=t.axes)||void 0===c||null===(c=c[n])||void 0===c||null===(c=c.inertia)||void 0===c||c.setPos(e),null!==(u=t.axes)&&void 0!==u&&null!==(u=u[n])&&void 0!==u&&null!==(u=u.inertia)&&void 0!==u&&u._&&(e=null===(p=t.axes)||void 0===p||null===(p=p[n])||void 0===p||null===(p=p.inertia)||void 0===p?void 0:p._.pos),t.axes[n].tweenAxis.forEach((function(t){return t.goTo(e,a.tweenRefMaps,!1,i)})),d(e),s();a.live||(a.live=!0,requestAnimationFrame(a._rafLoop))}})).then((function(e){var r;null===(r=t.axes)||void 0===r||null===(r=r[n])||void 0===r||null===(r=r.inertia)||void 0===r||r._detectCurrentSnap()})):(console.warn("[react-voodoo] scrollTo() cannot be used server-side — use the Axis defaultPosition prop to set the initial axis position"),Promise.resolve())}},{key:"addScrollableAnim",value:function(e){var t,r,n=this,o=arguments.length>1&&void 0!==arguments[1]?arguments[1]:"scrollY",i=this._,a={},s=this._getAxis(o);return Je(e)?r=e:(r=e.anims,e.length),r instanceof Pe||(r=ye(r,a,this._.muxDataByTarget,this._.muxByTarget),(r=new Pe(r,i.tweenRefMaps)).initials=a,Object.keys(a).forEach((function(e){i.tweenRefOrigin[e]=i.tweenRefOrigin[e]||{},i.tweenRefMaps[e]=i.tweenRefMaps[e]||{},Object.assign(n._.tweenRefMaps[e],qe(qe({},a[e]),n._.tweenRefMaps[e]))}))),s.tweenAxis.push(r),s.scrollPos=s.scrollPos||0,s.scrollableArea=s.scrollableArea||0,s.scrollableArea=Math.max(s.scrollableArea,r.duration),s.scrollableBounds||null===(t=s.inertia)||void 0===t||t.setBounds(0,s.scrollableArea),r.goTo(s.scrollPos,this._.tweenRefMaps,!1,!0),this._updateTweenRefs(),r}},{key:"rmScrollableAnim",value:function(e){var t,r,n=arguments.length>1&&void 0!==arguments[1]?arguments[1]:"scrollY",o=this._,i=this._getAxis(n),a=i.tweenAxis.indexOf(e);-1!==a&&(i.tweenAxis.splice(a,1),i.scrollableArea=Math.max.apply(Math,k()(i.tweenAxis.map((function(e){return e.duration}))).concat([0])),i.scrollableBounds||null===(r=i.inertia)||void 0===r||r.setBounds(0,i.scrollableArea||0),e.goTo(0,this._.tweenRefMaps,!1,!0),Object.keys(e.initials).forEach((function(t){Object.keys(e.initials[t]).forEach((function(e){ge(0,e,o.tweenRefMaps[t],o.tweenRefCSS[t],o.muxDataByTarget[t],o.muxByTarget[t])}))})),delete e.initials,e.destroy(),t=!0,this._updateTweenRefs()),!t&&console.warn("[react-voodoo] rmScrollableAnim: axis not found:",n)}},{key:"_runScrollGoTo",value:function(e,t,r){var n=this,o=arguments.length>3&&void 0!==arguments[3]?arguments[3]:function(e){return e},i=arguments.length>4?arguments[4]:void 0,a=arguments.length>5?arguments[5]:void 0,s=arguments.length>6?arguments[6]:void 0,l=this.axes[e].scrollPos,c=t-l;Qe.push({apply:function(t,r){var s,u,p,f=l+o(t/r)*c;n._.tweenEnabled&&(null===(s=n.axes)||void 0===s||null===(s=s[e])||void 0===s||null===(s=s.inertia)||void 0===s||s.setPos(f),null!==(u=n.axes)&&void 0!==u&&null!==(u=u[e])&&void 0!==u&&null!==(u=u.inertia)&&void 0!==u&&u._&&(f=null===(p=n.axes)||void 0===p||null===(p=p[e])||void 0===p||null===(p=p.inertia)||void 0===p?void 0:p._.pos),n.axes[e].tweenAxis.forEach((function(e){return e.goTo(f,n._.tweenRefMaps,!1,i)})),a&&a(f))},duration:r,cpos:0,cb:s}),Ge||(Ge=!0,Ke=Date.now(),setTimeout(tt,16))}},{key:"componentShouldScroll",value:function(){var e,t=this._;return!(t.rootRef&&t.rootRef.current&&t.rootRef.current.componentShouldScroll)||(e=t.rootRef.current).componentShouldScroll.apply(e,arguments)}},{key:"watchAxis",value:function(e,t){var r=this._scrollWatcherByAxis;return r[e]=r[e]||[],r[e].push(t),function(){var n=r[e].indexOf(t);r[e].splice(n,1)}}},{key:"axisDidScroll",value:function(e,t){var r=this._scrollWatcherByAxis[t],n=null==r?void 0:r.length;if(r)for(;n;)r[--n](e)}},{key:"applyInertia",value:function(e,t){var r,n,o=this,i=e.inertia.update(),a=this._;this.axes[t].tweenAxis.forEach((function(e){o.axes[t].targetPos=o.axes[t].scrollPos=i,e.goTo(i,o._.tweenRefMaps)})),null===(r=a.rootRef)||void 0===r||null===(r=r.current)||void 0===r||null===(n=r.componentDidScroll)||void 0===n||n.call(r,i,t),this.axisDidScroll(i,t),this._updateTweenRefs(),e.inertia.active||e.inertia.holding?e.inertiaFrame=setTimeout(this.applyInertia.bind(this,e,t),16):e.inertiaFrame=null}},{key:"isInertiaActive",value:function(){var e=this,t=(this._,!1);return this.axes&&Object.keys(this.axes).forEach((function(r){return t=t||e.axes[r]&&e.axes[r].inertia.active})),t}},{key:"isAxisOut",value:function(e,t,r){this._;var n=this.axes&&this.axes[e],o=r?t:n&&n.scrollPos+t;return o=o&&Math.round(o),!n||(n.scrollableBounds?o<=n.scrollableBounds.min||o>=n.scrollableBounds.max:o<=0||o>=n.scrollableArea)}},{key:"_activateNodeInertia",value:function(e){var t=this._,r=t.activeInertia.findIndex((function(t){return t.target===e}));return-1===r&&(t.activeInertia.push({inertia:{x:new Ue({max:e.scrollWidth-e.offsetLeft,value:e.scrollLeft}),y:new Ue({max:e.scrollHeight-e.offsetHeight,value:e.scrollTop})},target:e}),r=t.activeInertia.length-1),t.activeInertia[r].inertia}},{key:"setRootRef",value:function(e){this._.rootRef=e}},{key:"_updateBox",value:function(){var e=this.getRootNode();e&&(this._.box.inited=!0,this._.box.x=e.offsetWidth,this._.box.y=e.offsetHeight)}},{key:"_rafLoop",value:function(){this._updateTweenRefs(),this._.runningAnims.length?requestAnimationFrame(this._._rafLoop):this._.live=!1}},{key:"_updateTweenRefs",value:function(){if(this._.tweenEnabled)for(var e,t=0;t<this._.tweenRefTargets.length;t++)e=this._.tweenRefTargets[t],this._updateTweenRef(e)}},{key:"_updateTweenRef",value:function(e,t){var r,n=this._swap;if(this._.tweenRefCSS[e]&&he(this._.tweenRefMaps[e],n,this._.muxByTarget[e],this._.muxDataByTarget[e],this._.box),r=this.getTweenableRef(e)){for(var o in this._.tweenRefCSS[e])void 0===n[o]&&(o.length>5&&"a"===o[0]&&"t"===o[1]&&"t"===o[2]&&"r"===o[3]&&"_"===o[4]?r.setAttribute(o.slice(5),this._.tweenRefCSS[e][o]):r.style[o]=this._.tweenRefCSS[e][o]);for(var i in n)this._.tweenRefCSS[e].hasOwnProperty(i)&&((t||n[i]!==this._.tweenRefCSS[e][i])&&(this._.tweenRefCSS[e][i]=n[i],i.length>5&&"a"===i[0]&&"t"===i[1]&&"t"===i[2]&&"r"===i[3]&&"_"===i[4]?r.setAttribute(i.slice(5),n[i]):r.style[i]=n[i]),delete n[i])}return et(this._.tweenRefCSS[e])}},{key:"componentWillUnmount",value:function(){var e=this;this.getRootNode(),this._.tweenEnabled&&(this._.tweenEnabled=!1,window.removeEventListener("resize",this._.onResize),Object.keys(this.axes).forEach((function(t){e.axes[t].inertiaFrame&&clearTimeout(e.axes[t].inertiaFrame)}))),Xe(t,"componentWillUnmount",this,1)&&Xe(t,"componentWillUnmount",this,3)(arguments)}},{key:"_applyInitialSvgAttrs",value:function(){var e,t=function(e,t){var r="undefined"!=typeof Symbol&&e[Symbol.iterator]||e["@@iterator"];if(!r){if(Array.isArray(e)||(r=function(e,t){if(e){if("string"==typeof e)return Ve(e,t);var r={}.toString.call(e).slice(8,-1);return"Object"===r&&e.constructor&&(r=e.constructor.name),"Map"===r||"Set"===r?Array.from(e):"Arguments"===r||/^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(r)?Ve(e,t):void 0}}(e))||t&&e&&"number"==typeof e.length){r&&(e=r);var n=0,o=function(){};return{s:o,n:function(){return n>=e.length?{done:!0}:{done:!1,value:e[n++]}},e:function(e){throw e},f:o}}throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.")}var i,a=!0,s=!1;return{s:function(){r=r.call(e)},n:function(){var e=r.next();return a=e.done,e},e:function(e){s=!0,i=e},f:function(){try{a||null==r.return||r.return()}finally{if(s)throw i}}}}(this._.tweenRefTargets);try{for(t.s();!(e=t.n()).done;){var r=e.value,n=this.getTweenableRef(r),o=this._.tweenRefCSS[r];if(n&&o)for(var i in o)i.length>5&&"a"===i[0]&&"t"===i[1]&&"t"===i[2]&&"r"===i[3]&&"_"===i[4]&&n.setAttribute(i.slice(5),o[i])}}catch(e){t.e(e)}finally{t.f()}}},{key:"componentDidMount",value:function(){var e=this,r=this.constructor;if(this._.rendered=!0,this._.tweenEnabled){this._updateBox();for(var n=0;n<this._.tweenRefTargets.length;n++)this._updateTweenRef(this._.tweenRefTargets[n],!0)}r.scrollableAnim&&(S().array(r.scrollableAnim)?this.addScrollableAnim(r.scrollableAnim):Object.keys(r.scrollableAnim).forEach((function(t){return e.addScrollableAnim(r.scrollableAnim[t],t)}))),Xe(t,"componentDidMount",this,1)&&Xe(t,"componentDidMount",this,3)(arguments)}},{key:"componentDidUpdate",value:function(e,r){this._.tweenEnabled&&(this._updateBox(),this._updateTweenRefs()),Xe(t,"componentDidUpdate",this,1)&&Xe(t,"componentDidUpdate",this,3)(arguments)}},{key:"render",value:function(){var e=this,t=this.props,r=t.BaseComponent,n=t.oProps;return v().createElement(T.Consumer,null,(function(t){return e._parentTweener=t,v().createElement(T.Provider,{value:e},v().createElement(r,_()({},n,{ref:e._.rootRef,tweener:e})))}))}}])}(v().Component),nt=["children"];const ot=function(e){var t=arguments.length>1&&void 0!==arguments[1]?arguments[1]:"div",r=v().useContext(T),n=v().useRef(),o=v().useRef(),i=v().useMemo((function(){return!0===e||S().string(e)}),[]),a=v().useMemo((function(){if(!0===e)return r;if(S().string(e)){for(var t=r;null!==(o=t)&&void 0!==o&&o._&&t._.options.name!==e;){var o;if(!t._parentTweener){console.warn('[react-voodoo] useVoodoo: no parent tweener found with options.name === "'+e+'"');break}t=t._parentTweener}return t}var i=new rt({forwardedRef:n,tweenerOptions:e});return i.isMountedFromHook=!0,i._parentTweener=r,i}),[]),s=v().useMemo((function(){return v().forwardRef((function(e,r){var o=e.children,i=R()(e,nt);return v().createElement(T.Provider,{value:a},v().createElement(t,_()({ref:r?function(e){return r.current=n.current=e}:n},i),o))}))}),[]);return v().useEffect((function(){if(!i)return a.componentDidMount(),o.current=a,function(){var e;null!==(e=o.current)&&void 0!==e&&e._&&(o.current.componentWillUnmount(),o.current=null)}}),[]),v().useEffect((function(){var e;!i&&null!==(e=o.current)&&void 0!==e&&e._&&(o.current._updateBox(),o.current._updateTweenRefs())}),[n.current]),v().useEffect((function(){var e;!i&&null!==(e=o.current)&&void 0!==e&&e._&&(o.current._parentTweener=r)}),[r]),v().useEffect((function(){var t;!i&&null!==(t=o.current)&&void 0!==t&&t._&&(o.current._.options=e,o.current._updateBox(),o.current._updateTweenRefs())}),[e]),v().useMemo((function(){return[a,s]}),[s,a])},it=function(e){e.children;var t=e.id,r=e.axe,n=void 0===r?t:r,o=e.scrollFirst,i=e.bounds,a=e.scrollableWindow,s=e.inertia,l=e.size,c=e.defaultPosition,u=e.items,p=void 0===u?[]:u,f=v().useRef({}).current,d=ot(!0),g=m()(d,1)[0];return f.previousAxis&&f.previousAxis===n?f.previousInertia&&f.previousInertia===s&&f.previousBounds===i&&f.previousScrollableWindow===a||(f.previousInertia=s,f.previousAxis=n,f.previousBounds=i,f.previousScrollableWindow=a,g.initAxis(n,{inertia:s,scrollableArea:l,scrollableWindow:a,defaultPosition:c,scrollFirst:o,scrollableBounds:i})):(f.previousAxis=n,f.previousInertia=s,g.initAxis(n,{inertia:s,scrollableArea:l,scrollableWindow:a,defaultPosition:c,scrollFirst:o,scrollableBounds:i},!0)),f.previousTweener&&f.previousTweener===g?f.previousTweens===p||f.previousTweens&&x()(p,f.previousTweens)||(f.lastTL&&f.previousTweener&&f.previousTweener.rmScrollableAnim(f.lastTL,f.previousAxis),f.lastTL=null,p.length&&(f.lastTL=g.addScrollableAnim(p,n,l)),f.previousTweens=p):(f.previousTweener&&f.lastTL&&f.previousTweener.rmScrollableAnim(f.lastTL,f.previousAxis),p.length&&(f.lastTL=g.addScrollableAnim(p,n,l)),f.previousTweener=g,f.previousTweens=p),v().useEffect((function(){return function(){f.lastTL&&f.previousTweener&&f.previousTweener.rmScrollableAnim(f.lastTL,f.previousAxis),delete f.previousTweener,delete f.previousScrollable}}),[]),v().createElement(v().Fragment,null)},at=__webpack_require__(/*! shortid */ "./node_modules/lpack-react/.layer_modules/node_modules/shortid/index.js");var st=r.n(at);function lt(e){return"function"==typeof e&&!(e.prototype&&e.prototype.isReactComponent)}function ct(e){return function(e){return"function"==typeof e&&!!e.prototype.isReactComponent}(e)||lt(e)}var ut=["children","id","style","initial","pos","noRef","reset","tweener","isRoot","axes","refProp","tweenLines","tweenAxis"],pt=["children","className"],ft=["children","className"];function dt(e,t){var r=Object.keys(e);if(Object.getOwnPropertySymbols){var n=Object.getOwnPropertySymbols(e);t&&(n=n.filter((function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable}))),r.push.apply(r,n)}return r}function gt(e){for(var t=1;t<arguments.length;t++){var r=null!=arguments[t]?arguments[t]:{};t%2?dt(Object(r),!0).forEach((function(t){B()(e,t,r[t])})):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(r)):dt(Object(r)).forEach((function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(r,t))}))}return e}function ht(e,t){return e.map((function(e){return gt(gt({},e),{},{target:t})}))}var vt=v().forwardRef((function(e,t){var r=e.children,n=e.id,o=void 0===n?v().useMemo((function(){return st().generate()}),[]):n,i=e.style,a=e.initial,s=e.pos,l=e.noRef,c=(e.reset,e.tweener),u=(e.isRoot,e.axes),p=e.refProp,f=void 0===p?"nodeRef":p,d=e.tweenLines,g=void 0===d?u:d,h=e.tweenAxis,y=void 0===h?g:h,b=R()(e,ut),w=v().useRef({}).current,O=ot(!0),P=m()(O,1)[0];if(!(P=c||P))return console.error("[react-voodoo] No Tweener found in context — is there a parent ViewBox (useVoodoo) wrapping this Node?"),v().createElement(v().Fragment,null);var T,D=P.tweenRef(o,r.props&&r.props.style,i||a,s,t,l);v().useEffect((function(){return function(){w._tweenAxisObj&&Object.keys(w._tweenAxisObj).forEach((function(e){return w._currentTweener.rmScrollableAnim(w._tweenAxisObj[e],e)})),w._currentTweener&&(w._currentTweener.rmTweenRef(w.__tweenableId),w._currentTweener.setRootRef(void 0)),delete w._currentTweener,delete w._tweenAxisObj,delete w._previousScrollable}}),[]),(T=w._tweenAxis!==y&&!(w._tweenAxis&&x()(y,w._tweenAxis))||y&&!w._tweenAxis)||w._currentTweener!==P||w._previousScrollable!==y?(w._currentTweener&&T&&w._tweenAxisObj&&Object.keys(w._tweenAxisObj).forEach((function(e){return w._currentTweener.rmScrollableAnim(w._tweenAxisObj[e],e)})),w._currentTweener&&w._currentTweener!==P&&w._currentTweener.rmTweenRef(o),T&&(w._tweenAxis=y,y&&S().array(y)?w._tweenAxisObj={scrollY:P.addScrollableAnim(ht(y,o))}:w._tweenAxisObj=y&&Object.keys(y).reduce((function(e,t){return e[t]=P.addScrollableAnim(ht(y[t],o),t),e}),{}),D=P.tweenRef(o,r.props&&r.props.style,i||a,s,t,l)),D.style=gt({},P._updateTweenRef(o,!0)),b.hasOwnProperty("isRoot")&&(w._currentTweener&&w._currentTweener.setRootRef(void 0),c.setRootRef(o)),w._currentTweener=P,w._previousScrollable=y):D&&(D.style=gt({},P._updateTweenRef(o,!0)));var k=v().Children.only(r);return k&&v().isValidElement(k)?(w._lastRef=D,lt(k.type)?v().createElement(k.type,_()({},b,k.props,D,{ref:void 0},B()({},f,D.ref))):v().createElement(k.type,_()({},b,k.props,D))):(console.error("[react-voodoo] Node requires exactly one valid React element as a child. Node id:",o),v().createElement("div",null,"Invalid"))}));const yt=vt;vt.div=v().forwardRef((function(e,t){var r=e.children,n=e.className,o=R()(e,pt);return v().createElement(vt,_()({},o,{ref:t}),v().createElement("div",{className:n},r))})),vt.g=v().forwardRef((function(e,t){var r=e.children,n=e.className,o=R()(e,ft);return v().createElement(vt,_()({},o,{ref:t}),v().createElement("g",{className:n},r))}));var mt=["children","Comp","nodeRef","items","xAxis","yAxis","yBoxRef","xBoxRef","yRef","yHook","xHook","tweener","mouseDrag","touchDrag","button"],bt=v().forwardRef((function(e,t){var r=e.children,n=e.Comp,o=void 0===n?"div":n,i=e.nodeRef,a=(e.items,e.xAxis),s=e.yAxis,l=e.yBoxRef,c=e.xBoxRef,u=(e.yRef,e.yHook),p=e.xHook,f=e.tweener,d=e.mouseDrag,g=void 0!==d&&d,h=e.touchDrag,y=void 0===h||h,b=e.button,x=void 0===b?0:b,w=R()(e,mt),O=v().useRef(),P=v().useRef({root:O,_:{}}).current,T=ot(!0),D=m()(T,1)[0],k=v().useMemo((function(){return{getScrollableNodes:function(e){for(var t=[],r=P._parentTweener;r;)t.push(r),r=r._parentTweener;return t},_registerScrollListeners:function(){var e,t,r,n,o,i,a,s,l,c=null===(e=P.root)||void 0===e?void 0:e.current,u=P.props,p=u.xAxis,f=u.yAxis,d=u.yHook,g=u.xHook,h=u.mouseDrag,v=u.touchDrag,y=u.tweener,m=u.xBoxRef,b=u.yBoxRef,x=u.button,w=y._;c?(Ee.addEvent(c,P._.dragList={dragstart:function(e,r,u){var d,g,h,v;if(!(e instanceof MouseEvent&&e.button!==x))for(o=k.getScrollableNodes(e.target),t=Date.now(),n=0,i=0,a=[],s=null===(d=(null==m?void 0:m.current)||c)||void 0===d?void 0:d.offsetWidth,l=null===(g=(null==b?void 0:b.current)||c)||void 0===g?void 0:g.offsetHeight,v=0;v<o.length;v++){var y,w;(h=o[v])._updateBox(),h.__isTweener&&(p&&(null===(y=h.axes)||void 0===y||y[p]),f&&(null===(w=h.axes)||void 0===w||w[f]),h._updateNodeInertia())}},click:function(e,r,o){e instanceof MouseEvent&&e.button!==x||t&&(t-Date.now()>w.options.maxClickTm||Math.abs(i)>w.options.maxClickOffset||Math.abs(n)>w.options.maxClickOffset)&&(e.preventDefault(),e.stopPropagation())},drag:function(e,c,u){var h,v,y,_,O,R,P,S,T,D;if(!(e instanceof MouseEvent&&e.button!==x||(n=-(u._lastPos.x-u._startPos.x),i=-(u._lastPos.y-u._startPos.y),t&&t>Date.now()-w.options.maxClickTm&&Math.abs(i)<w.options.maxClickOffset&&Math.abs(n)<w.options.maxClickOffset)))for(_=!n,S=!i,w.options.dragDirectionLock&&("Y"===r||!r&&Math.abs(.5*i)>Math.abs(n)?(r="Y",n=0):("X"===r||!r&&Math.abs(.5*n)>Math.abs(i))&&(r="X",i=0)),D=0;D<o.length;D++)if((h=o[D]).__isTweener){var k,j,E,M,B,A,C,W,I,L;if(v=p&&(null===(k=h.axes)||void 0===k?void 0:k[p]),R=f&&(null===(j=h.axes)||void 0===j?void 0:j[f]),!v&&!R)continue;a[D]||(a[D]={x:null===(B=v)||void 0===B?void 0:B.scrollPos,y:null===(A=R)||void 0===A?void 0:A.scrollPos},null===(C=v)||void 0===C||null===(C=C.inertia)||void 0===C||C.startMove(),null===(W=R)||void 0===W||null===(W=W.inertia)||void 0===W||W.startMove(),p&&v&&(null===(I=v)||void 0===I||!I.inertiaFrame)&&h.applyInertia(v,p),f&&R&&(null===(L=R)||void 0===L||!L.inertiaFrame)&&h.applyInertia(R,f)),v&&(O=null!=m&&m.current?s:h._.box.x,y=n&&n/O*(v.scrollableWindow||v.scrollableArea)||0,g&&(y=g(y))),R&&(T=null!=b&&b.current?l:h._.box.y,P=i&&i/T*(R.scrollableWindow||R.scrollableArea)||0,d&&(P=d(P))),v&&!_&&y&&null!==(E=v)&&void 0!==E&&null!==(E=E.inertia)&&void 0!==E&&E.isInbound(a[D].x+y)&&h.componentShouldScroll(p,y)&&(v.inertia.hold(a[D].x+y),_=!0),R&&!S&&P&&null!==(M=R)&&void 0!==M&&null!==(M=M.inertia)&&void 0!==M&&M.isInbound(a[D].y+P)&&h.componentShouldScroll(f,P)&&(R.inertia.hold(a[D].y+P),S=!0)}},dropped:function(e,s,l){var c,u;if(!(e instanceof MouseEvent&&e.button!==x)){for(r=void 0,u=0;u<o.length;u++){var d,g;(c=o[u]).__isTweener&&a[u]&&(null===(d=c.axes)||void 0===d||null===(d=d[p])||void 0===d||null===(d=d.inertia)||void 0===d||d.release(),null===(g=c.axes)||void 0===g||null===(g=g[f])||void 0===g||null===(g=g.inertia)||void 0===g||g.release())}!t||t>Date.now()-w.options.maxClickTm&&Math.abs(i)<w.options.maxClickOffset&&Math.abs(n)<w.options.maxClickOffset||(e.stopPropagation(),e.cancelable&&e.preventDefault()),o=a=null}}},null,w.options.enableMouseDrag||h,v),P._.doRegister=!!c):P._.doRegister=!0}}}),[]);return v().useEffect((function(){return k._registerScrollListeners(),function(){var e,t=null===(e=P.root)||void 0===e?void 0:e.current;P._.scrollEnabled&&(P._.scrollEnabled=!1,t&&P._.dragList&&Ee.removeEvent(t,P._.dragList))}}),[]),v().useEffect((function(){S().function(i)&&i(O.current),S().function(t)?t(O.current):t&&(t.current=O.current)}),[i,t]),P.props={xAxis:a,yAxis:s,yHook:u,xHook:p,mouseDrag:g,touchDrag:y,tweener:f||D,xBoxRef:c,yBoxRef:l,button:x},P._parentTweener=D,v().createElement(o,_()({ref:O},w),r)}));const xt=bt;bt.div=function(e){return v().createElement(bt,e)};const wt=function(){return v().useContext(T)};function _t(e,t){var r=Object.keys(e);if(Object.getOwnPropertySymbols){var n=Object.getOwnPropertySymbols(e);t&&(n=n.filter((function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable}))),r.push.apply(r,n)}return r}var Ot={}.constructor;function Rt(){for(var e=arguments.length,t=new Array(e),r=0;r<e;r++)t[r]=arguments[r];var n=(!t[0]||ct(t[0]))&&t.shift(),o=(!t[0]||t[0]instanceof Ot)&&t.shift()||{};if(!n)return function(e){return Rt(e,o)};o=function(e){for(var t=1;t<arguments.length;t++){var r=null!=arguments[t]?arguments[t]:{};t%2?_t(Object(r),!0).forEach((function(t){B()(e,t,r[t])})):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(r)):_t(Object(r)).forEach((function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(r,t))}))}return e}({wheelRatio:5,maxClickTm:200,maxClickOffset:20},o);var i=v().forwardRef((function(e,t){return v().createElement(rt,{oProps:e,forwardedRef:t,BaseComponent:n,tweenerOptions:o})}));return i.displayName=String.fromCharCode(55358,56793)+(n.displayName||n.name),i}function Pt(){try{var e=!Boolean.prototype.valueOf.call(Reflect.construct(Boolean,[],(function(){})))}catch(e){}return(Pt=function(){return!!e})()}var St,Tt={}.constructor;function Dt(){for(var e=arguments.length,t=new Array(e),r=0;r<e;r++)t[r]=arguments[r];var n=(!t[0]||ct(t[0]))&&t.shift(),o=(!t[0]||t[0]instanceof Tt)&&t.shift()||{};if(!n||!(n.prototype instanceof v().Component||n===v().Component))return function(e){return Dt(e,o)};var i=function(e){function t(){return a()(this,t),e=this,r=t,n=arguments,r=f()(r),u()(e,Pt()?Reflect.construct(r,n||[],f()(e).constructor):r.apply(e,n));var e,r,n}return g()(t,e),l()(t,[{key:"render",value:function(){var e=this;return v().createElement(T.Consumer,null,(function(t){return v().createElement(n,_()({},e.props,{tweener:t,ref:e.props.forwardedRef}))}))}}])}(v().Component);B()(i,"displayName",n.displayName||n.name);var s=v().forwardRef((function(e,t){return v().createElement(i,_()({},e,{forwardedRef:t}))}));return s.displayName=i.displayName,s}function kt(e,t,r){return t=f()(t),u()(e,jt()?Reflect.construct(t,r||[],f()(e).constructor):t.apply(e,r))}function jt(){try{var e=!Boolean.prototype.valueOf.call(Reflect.construct(Boolean,[],(function(){})))}catch(e){}return(jt=function(){return!!e})()}be().EasingFunctions=A;var Et=Rt(St=function(e){function t(){return a()(this,t),kt(this,t,arguments)}return g()(t,e),l()(t,[{key:"render",value:function(){return this.props.children}}])}(v().Component))||St;const Mt={tweener:Rt,child:Dt,useTweener:wt,useVoodoo:ot,hook:ot,tools:e,Draggable:xt,Component:Et,Node:yt,Context:T,Axis:it,dom:Ee,_internalCssUtils:o}})(),module.exports=n})();
 //# sourceMappingURL=react-voodoo.js.map
 
 /***/ }),
@@ -50643,10 +51004,10 @@ if (false) {} else {
 
 /***/ }),
 
-/***/ "./node_modules/tween-axis/dist/TweenAxis.js":
-/*!***************************************************!*\
-  !*** ./node_modules/tween-axis/dist/TweenAxis.js ***!
-  \***************************************************/
+/***/ "./node_modules/tween-axis/dist/TweenAxisWasm.js":
+/*!*******************************************************!*\
+  !*** ./node_modules/tween-axis/dist/TweenAxisWasm.js ***!
+  \*******************************************************/
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -50656,10 +51017,13 @@ Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports["default"] = void 0;
-var _Tween = _interopRequireDefault(__webpack_require__(/*! ./lines/Tween.js */ "./node_modules/tween-axis/dist/lines/Tween.js"));
-var _Runner = _interopRequireDefault(__webpack_require__(/*! ./utils/Runner.js */ "./node_modules/tween-axis/dist/utils/Runner.js"));
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
 function _typeof(obj) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (obj) { return typeof obj; } : function (obj) { return obj && "function" == typeof Symbol && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }, _typeof(obj); }
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread(); }
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
+function _iterableToArray(iter) { if (typeof Symbol !== "undefined" && iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter); }
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) return _arrayLikeToArray(arr); }
+function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i]; return arr2; }
 function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); enumerableOnly && (symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; })), keys.push.apply(keys, symbols); } return keys; }
 function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = null != arguments[i] ? arguments[i] : {}; i % 2 ? ownKeys(Object(source), !0).forEach(function (key) { _defineProperty(target, key, source[key]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)) : ownKeys(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } return target; }
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -50668,394 +51032,6 @@ function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _d
 function _defineProperty(obj, key, value) { key = _toPropertyKey(key); if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 function _toPropertyKey(arg) { var key = _toPrimitive(arg, "string"); return _typeof(key) === "symbol" ? key : String(key); }
 function _toPrimitive(input, hint) { if (_typeof(input) !== "object" || input === null) return input; var prim = input[Symbol.toPrimitive]; if (prim !== undefined) { var res = prim.call(input, hint || "default"); if (_typeof(res) !== "object") return res; throw new TypeError("@@toPrimitive must return a primitive value."); } return (hint === "string" ? String : Number)(input); }
-var slice = Array.prototype.slice,
-  push = Array.prototype.push,
-  abs = Math.abs,
-  is = {
-    array: function array(obj) {
-      return Array.isArray(obj);
-    },
-    number: function number(obj) {
-      return typeof obj === "number";
-    },
-    string: function string(obj) {
-      return typeof obj === "string";
-    }
-  };
-var TweenAxis = /*#__PURE__*/function () {
-  function TweenAxis(cfg, scope) {
-    _classCallCheck(this, TweenAxis);
-    this.scope = scope;
-    cfg = cfg || {};
-    this.__marks = [];
-    this.__marksLength = [];
-    this.__marksKeys = [];
-    this.__processors = [];
-    this.__config = [];
-    this.__activeProcess = [];
-    this.__activeProcess = [];
-    this.__outgoing = [];
-    this.__incoming = [];
-    this.__cPos = 0;
-    this.__cIndex = 0;
-    this.__cMaxKey = 1;
-    if (is.array(cfg)) {
-      this.localLength = 1;
-      this.mount(cfg, scope);
-    } else {
-      if (cfg.TweenAxis) this.mount(cfg.TweenAxis, scope);
-    }
-  }
-  _createClass(TweenAxis, [{
-    key: "destroy",
-    value: function destroy() {}
-
-    /**
-     * Run this tween line from 0 to his duration using linear
-     * @param target
-     * @param cb
-     * @param tm
-     */
-  }, {
-    key: "run",
-    value: function run(target, cb, tm) {
-      TweenAxis.Runner.run(this, target, tm || this.duration, cb);
-    }
-
-    /**
-     * Tween this tween line to 'to' during 'tm' ms using easing fn
-     * @param to {int}
-     * @param tm {int} duration in ms
-     * @param easing {function} easing fn
-     * @param tick {function} fn called at each tick
-     * @param cb {function} fn called on complete
-     */
-  }, {
-    key: "runTo",
-    value: function runTo(to, tm) {
-      var _this = this;
-      var easing = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : function (x) {
-        return x;
-      };
-      var tick = arguments.length > 3 ? arguments[3] : undefined;
-      var cb = arguments.length > 4 ? arguments[4] : undefined;
-      var from = this.__cPos,
-        length = to - from;
-      TweenAxis.Runner.push({
-        apply: function apply(pos, max) {
-          var x = from + easing(pos / max) * length;
-          _this.goTo(x);
-          tick && tick(x);
-        },
-        duration: tm,
-        cpos: 0,
-        cb: cb
-      });
-    }
-
-    /**
-     * Map process descriptors to get a runnable timeline
-     * @method mount
-     * @param map
-     */
-  }, {
-    key: "mount",
-    value: function mount(map, scope) {
-      var i,
-        ln,
-        d = this.duration || 0,
-        p = 0,
-        max = 0,
-        factory;
-      for (i = 0, ln = map.length; i < ln; i++) {
-        if (is.string(map[i].easeFn)) map[i] = _objectSpread(_objectSpread({}, map[i]), {}, {
-          easeFn: TweenAxis.EasingFunctions[map[i].easeFn] || false
-        });
-        factory = TweenAxis.LineTypes[map[i].type || 'Tween'];
-        if (!factory) {
-          console.log('TweenAxis : Line type not found : ' + map[i].type, "\n Available : " + Object.keys(TweenAxis.LineTypes));
-          continue;
-        }
-        if (!is.number(map[i].from)) {
-          // no from so assume it's sync
-          this.addProcess(d, d + map[i].duration, factory, map[i]);
-          d += map[i].duration || 0;
-        } else
-          // have from so assume it's async
-          this.addProcess(map[i].from, map[i].from + map[i].duration, factory, map[i]), max = Math.max(max, map[i].from + map[i].duration);
-      }
-      this.duration = Math.max(d, max);
-      return this;
-    }
-
-    /**
-     * Map a process descriptor
-     * @method addProcess
-     * @param from
-     * @param to
-     * @param process
-     * @param cfg
-     * @returns {TweenAxis}
-     */
-  }, {
-    key: "addProcess",
-    value: function addProcess(_from, _to, process, cfg) {
-      var i = 0,
-        _ln = process.localLength,
-        from = TweenAxis.center + _from,
-        to = TweenAxis.center + _to,
-        ln = to - from || 0,
-        key = this.__cMaxKey++;
-      this.__processors[key] = process.isFactory ? process(null, cfg, cfg.target) : process;
-      this.__marksLength[key] = ln;
-      this.__config[key] = cfg;
-
-      // put start marker in the ordered marker list
-      while (i <= this.__marks.length && this.__marks[i] < from) i++;
-      this.__marks.splice(i, 0, from);
-      this.__marksKeys.splice(i, 0, key);
-
-      // put end marker in the ordered marker list
-      while (i <= this.__marks.length && this.__marks[i] <= to) i++;
-      this.__marks.splice(i, 0, to);
-      this.__marksKeys.splice(i, 0, -key);
-      return this;
-    }
-
-    /**
-     *
-     * @param key
-     * @returns {*}
-     * @private
-     */
-  }, {
-    key: "_getIndex",
-    value: function _getIndex(key) {
-      return (key = this.__marksKeys.indexOf(key)) !== -1 ? key : false;
-    }
-
-    /**
-     * apply to scope or this.scope the delta of the process mapped from cPos to 'to'
-     * using a TweenAxis length of 1
-     * @method go
-     * @param to
-     * @param scope
-     * @param reset
-     */
-  }, {
-    key: "go",
-    value: function go(to, scope, reset, noEvents) {
-      this.goTo(to * this.duration, scope, reset, noEvents);
-      this.__cRPos = to;
-      return scope || this.scope;
-    }
-
-    /**
-     * apply to scope or this.scope the delta of the process mapped from cPos to 'to'
-     * using the mapped TweenAxis length
-     * @method goTo
-     * @param to
-     * @param scope
-     * @param reset
-     */
-  }, {
-    key: "goTo",
-    value: function goTo(initial_to, scope, reset, noEvents) {
-      scope = scope || this.scope;
-      var to = TweenAxis.center + initial_to;
-      if (!this._started) {
-        this._started = true;
-        this.__cIndex = this.__cPos = 0;
-      }
-      var currentMarkerIndex = this.__cIndex,
-        p,
-        ln,
-        outgoing = this.__outgoing,
-        incoming = this.__incoming,
-        pos,
-        _from,
-        _to,
-        d,
-        key,
-        maxMarkerIndex = this.__marks.length,
-        cPos = TweenAxis.center + this.__cPos,
-        delta = to - cPos;
-      if (reset) {
-        this.__activeProcess.length = 0;
-        this.__outgoing.length = 0;
-        this.__incoming.length = 0;
-      }
-
-      // 1st ajust period, knowing which process are involved / leaving
-      // while my indice target a marker/time period inferior to my pos
-
-      while (currentMarkerIndex < maxMarkerIndex && to > this.__marks[currentMarkerIndex] || delta >= 0 && this.__marks[currentMarkerIndex] === to) {
-        // if next marker is ending an active process
-        if ((p = this.__activeProcess.indexOf(-this.__marksKeys[currentMarkerIndex])) !== -1) {
-          this.__activeProcess.splice(p, 1);
-          outgoing.push(this.__marksKeys[currentMarkerIndex]);
-          //console.log("close " + this.__marksKeys[i]);
-        }
-        // if next marker is process ending a process who just start (direction has
-        // change)
-        else if ((p = this.__activeProcess.indexOf(this.__marksKeys[currentMarkerIndex])) !== -1) {
-          this.__activeProcess.splice(p, 1);
-          outgoing.push(this.__marksKeys[currentMarkerIndex]);
-          //console.log("close after dir change" + this.__marksKeys[i]);
-        }
-        // if next marker is process ending a process who just start
-        else if ((p = incoming.indexOf(-this.__marksKeys[currentMarkerIndex])) !== -1) {
-          incoming.splice(p, 1);
-          outgoing.push(this.__marksKeys[currentMarkerIndex]);
-          //console.log("close starting " + this.__marksKeys[i]);
-        } else {
-          incoming.push(this.__marksKeys[currentMarkerIndex]);
-          //console.log("right say in " + this.__marksKeys[i]);
-        }
-
-        currentMarkerIndex++;
-      }
-
-      // while my indice-1 target a marker/time period superior to my pos
-      while (currentMarkerIndex - 1 >= 0 && (to < this.__marks[currentMarkerIndex - 1] || delta < 0 && this.__marks[currentMarkerIndex - 1] === to)) {
-        currentMarkerIndex--;
-        if ((p = this.__activeProcess.indexOf(-this.__marksKeys[currentMarkerIndex])) !== -1) {
-          this.__activeProcess.splice(p, 1);
-          outgoing.push(this.__marksKeys[currentMarkerIndex]);
-          //console.log("left say out " + this.__marksKeys[i]);
-        } // if next marker is process ending a process who just start (direction has
-        // change)
-        else if ((p = this.__activeProcess.indexOf(this.__marksKeys[currentMarkerIndex])) !== -1) {
-          this.__activeProcess.splice(p, 1);
-          outgoing.push(this.__marksKeys[currentMarkerIndex]);
-          //console.log("close after dir change" + this.__marksKeys[i]);
-        } else if ((p = incoming.indexOf(-this.__marksKeys[currentMarkerIndex])) !== -1) {
-          incoming.splice(p, 1);
-          outgoing.push(this.__marksKeys[currentMarkerIndex]);
-          //console.log("left say out from incoming " + this.__marksKeys[i]);
-        } else {
-          //console.log("left say in " + this.__marksKeys[currentMarkerIndex]);
-          incoming.push(this.__marksKeys[currentMarkerIndex]);
-        }
-      }
-
-      // now dispatching deltas
-      //console.log(incoming, outgoing, this.__activeProcess);
-
-      this.__cIndex = currentMarkerIndex;
-      // those leaving subline
-      for (currentMarkerIndex = 0, ln = outgoing.length; currentMarkerIndex < ln; currentMarkerIndex++) {
-        p = this._getIndex(outgoing[currentMarkerIndex]);
-        key = abs(outgoing[currentMarkerIndex]);
-        if (outgoing[currentMarkerIndex] < 0) {
-          _from = Math.min(this.__marks[p], Math.max(cPos, this.__marks[p] - this.__marksLength[key])) - (this.__marks[p] - this.__marksLength[key]);
-          _to = this.__marksLength[key];
-          pos = _from;
-          d = _to - _from;
-          pos = (this.localLength || 1) * pos / this.__marksLength[key];
-          d = (this.localLength || 1) * d / this.__marksLength[key];
-        } else {
-          _from = Math.max(this.__marks[p], Math.min(cPos, this.__marks[p] + this.__marksLength[key])) - this.__marks[p];
-          _to = 0;
-          pos = _from;
-          d = _to - _from;
-          pos = (this.localLength || 1) * pos / this.__marksLength[key];
-          d = (this.localLength || 1) * d / this.__marksLength[key];
-        }
-        //
-        //console.log("out " + this.__marksKeys[p] + " " + this.__marksLength[p]+
-        //            '\npos:'+this.__cPos+
-        //            '\nmark:'+this.__marks[p]+
-        //            '\ninnerpos:'+pos+
-        //            '\ndelta:'+d
-        //);
-
-        this.__processors[key](pos, d, scope, this.__config[key], this.__config[key].target || this.__config[key].$target && this.__context && this.__context[this.__config[key].$target], noEvents);
-      }
-
-      // those entering subline
-      for (currentMarkerIndex = 0, ln = incoming.length; currentMarkerIndex < ln; currentMarkerIndex++) {
-        p = this._getIndex(incoming[currentMarkerIndex]);
-        key = abs(incoming[currentMarkerIndex]);
-        if (incoming[currentMarkerIndex] < 0) {
-          _from = this.__marksLength[key];
-          _to = Math.max(this.__marks[p] - this.__marksLength[key], Math.min(cPos + delta, this.__marks[p])) - (this.__marks[p] - this.__marksLength[key]);
-          pos = _from;
-          d = _to - _from;
-          pos = (this.localLength || 1) * pos / this.__marksLength[key];
-          d = (this.localLength || 1) * d / this.__marksLength[key];
-        } else {
-          _from = 0;
-          _to = Math.max(this.__marks[p], Math.min(cPos + delta, this.__marks[p] + this.__marksLength[key])) - this.__marks[p];
-          pos = _from;
-          d = _to - _from;
-          pos = (this.localLength || 1) * pos / this.__marksLength[key];
-          d = (this.localLength || 1) * d / this.__marksLength[key];
-        }
-
-        //console.log("in " + this.__marksKeys[p] + " " + this.__marksLength[p]+
-        //            '\ndiff:'+diff+
-        //            '\npos:'+this.__cPos+
-        //            '\nmark:'+this.__marks[p]+
-        //            '\n_from:'+_from+
-        //            '\n_to:'+_to+
-        //            '\ninnerpos:'+pos+
-        //            '\ndelta:'+d
-        //);
-
-        if (!reset) this.__processors[key](pos, d, scope, this.__config[key], this.__config[key].target || this.__config[key].$target && this.__context && this.__context[this.__config[key].$target], noEvents);
-      }
-      // and those who where already there
-      //if ( !reset )
-      for (currentMarkerIndex = 0, ln = this.__activeProcess.length; currentMarkerIndex < ln; currentMarkerIndex++) {
-        p = this._getIndex(this.__activeProcess[currentMarkerIndex]);
-        key = abs(this.__activeProcess[currentMarkerIndex]);
-
-        //d = (this.__cPos - diff)<this.__marks[p]?this.__cPos-this.__marks[p] : diff;
-        pos = this.__activeProcess[currentMarkerIndex] < 0 ? cPos - (this.__marks[p] - this.__marksLength[key]) : cPos - this.__marks[p];
-        pos = (this.localLength || 1) * pos / this.__marksLength[key];
-        d = delta * (this.localLength || 1) / this.__marksLength[key];
-        //console.log("active " + p + " " + this.__marksLength[p]
-        //            +'\nto:'+to
-        //            +'\npos:'+this.__cPos
-        //            +'\nmark:'+this.__marks[p]+
-        //            '\ngdiff:'+diff68786k
-        //            +'\ninnerpos:'+(pos * (this.localLength || 1)) /
-        // abs(this.__marksLength[p]) +'\ndelta:'+(diff * (this.localLength || 1)) /
-        // abs(this.__marksLength[p]) );
-        if (!reset) this.__processors[key](pos, d, scope, this.__config[key], this.__config[key].target || this.__config[key].$target && this.__context && this.__context[this.__config[key].$target], noEvents);
-      }
-      push.apply(this.__activeProcess, incoming);
-      outgoing.length = 0;
-      incoming.length = 0;
-      this.__cPos = initial_to;
-      this.onScopeUpdated && this.onScopeUpdated(this.__cPos, delta, scope);
-      return scope;
-    }
-  }]);
-  return TweenAxis;
-}();
-exports["default"] = TweenAxis;
-_defineProperty(TweenAxis, "Runner", _Runner["default"]);
-_defineProperty(TweenAxis, "center", 10000000000);
-_defineProperty(TweenAxis, "LineTypes", {
-  Tween: _Tween["default"]
-});
-_defineProperty(TweenAxis, "EasingFunctions", {});
-
-/***/ }),
-
-/***/ "./node_modules/tween-axis/dist/index.js":
-/*!***********************************************!*\
-  !*** ./node_modules/tween-axis/dist/index.js ***!
-  \***********************************************/
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
-
-"use strict";
-
-
-var _TweenAxis = _interopRequireDefault(__webpack_require__(/*! ./TweenAxis */ "./node_modules/tween-axis/dist/TweenAxis.js"));
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
 /*
  *   The MIT License (MIT)
  *   Copyright (c) 2023. Nathanael Braun
@@ -51082,100 +51058,83 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "d
  *   @contact : n8tz.js@gmail.com
  */
 
-module.exports = _TweenAxis["default"];
-
-/***/ }),
-
-/***/ "./node_modules/tween-axis/dist/lines/Tween.js":
-/*!*****************************************************!*\
-  !*** ./node_modules/tween-axis/dist/lines/Tween.js ***!
-  \*****************************************************/
-/***/ ((module) => {
-
-"use strict";
-
-
-/*
- *   The MIT License (MIT)
- *   Copyright (c) 2023. Nathanael Braun
+/**
+ * TweenAxisWasm
  *
- *   Permission is hereby granted, free of charge, to any person obtaining a copy
- *   of this software and associated documentation files (the "Software"), to deal
- *   in the Software without restriction, including without limitation the rights
- *   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- *   copies of the Software, and to permit persons to whom the Software is
- *   furnished to do so, subject to the following conditions:
+ * A drop-in replacement for TweenAxis that offloads the timeline state machine
+ * to a WebAssembly module.
  *
- *   The above copyright notice and this permission notice shall be included in all
- *   copies or substantial portions of the Software.
+ * Architecture
+ * ────────────
+ * • The WASM module (TweenAxisCore) owns the sorted marks array, active-process
+ *   tracking, and all delta/position arithmetic for each context.
+ * • This JS class manages JS-side concerns: processor factory functions, config
+ *   objects, and the Runner (animation loop).
+ * • goTo() asks the WASM for a result list [(phase, key, pos, delta), ...] and
+ *   then dispatches each entry to the appropriate JS processor function.
  *
- *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- *   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- *   SOFTWARE.
+ * Multi-instance safety
+ * ─────────────────────
+ * Each TweenAxisWasm instance allocates its own context slot in the WASM pool
+ * (max 64 simultaneous instances). destroy() must be called to release the slot.
  *
- *   @author : Nathanael Braun
- *   @contact : n8tz.js@gmail.com
+ * Synchronous WASM loading
+ * ────────────────────────
+ * The WASM binary is embedded as base64 in wasm-data.js at build time.
+ * new WebAssembly.Module() + new WebAssembly.Instance() are synchronous when
+ * given a Uint8Array, so no async setup is required.
  */
-var isValidKey = /^[a-zA-Z\d\-\_]*$/;
-module.exports = function (_scope, cfg, target) {
+
+var isValidKey = /^[a-zA-Z\d\-_]*$/;
+
+// ─── Load WASM once, shared across all instances ─────────────────────────────
+
+var _wasm = null; // set to exports object on first use
+
+function getWasm() {
+  if (_wasm) return _wasm;
+  var wasmBytes = __webpack_require__(/*! ./wasm-data.js */ "./node_modules/tween-axis/dist/wasm-data.js");
+  var mod = new WebAssembly.Module(wasmBytes);
+  var inst = new WebAssembly.Instance(mod, {
+    env: {
+      // AssemblyScript may import abort
+      abort: function abort(_msg, _file, line, col) {
+        throw new Error("WASM abort at ".concat(line, ":").concat(col));
+      }
+    }
+  });
+  _wasm = inst.exports;
+  return _wasm;
+}
+
+// ─── Inline Tween line factory (same as tween-axis JS) ───────────────────────
+
+function tweenFactory(_scope, cfg, target) {
   var fn = "\n\tif (!noEvents){\n\t";
-  if (cfg.entering)
-    // only add code if the functions exists for perfs purpose
-    fn += "\n\t\tif ( lastPos === 0 || lastPos === 1 )\n\t\t\tcfg.entering(update);\n\t\t";
+  if (cfg.entering) fn += "\n\t\tif ( lastPos === 0 || lastPos === 1 )\n\t\t\tcfg.entering(update);\n\t\t";
   if (cfg.moving) fn += "\n\t\t\tcfg.moving(lastPos + update, lastPos, update);\n\t\t";
   if (cfg.leaving) fn += "\n\t\tif ( (lastPos + update === 0 || lastPos + update === 1) )\n\t\t\tcfg.leaving(update);\n\t\t";
   fn += "\n\t}\n\t";
-  target && (fn += "scope = scope['" + target + "'];\n");
+  target && (fn += "scope = scope['".concat(target, "'];\n"));
   if (cfg.apply) for (var k in cfg.apply) if (cfg.apply.hasOwnProperty(k) && isValidKey.test(k)) {
     _scope && (_scope[k] = _scope[k] || 0);
-    fn += "scope." + k + "+=(" + (cfg.easeFn ? "cfg.easeFn(lastPos+update)" + "- cfg.easeFn(lastPos)" : "update") + ") * cfg.apply." + k + ";";
+    fn += "scope.".concat(k, "+=(").concat(cfg.easeFn ? "cfg.easeFn(lastPos+update) - cfg.easeFn(lastPos)" : "update", ") * cfg.apply.").concat(k, ";");
   }
   return new Function("lastPos, update, scope, cfg, target, noEvents", fn);
-};
-module.exports.isFactory = true;
+}
+tweenFactory.isFactory = true;
 
-/***/ }),
+// ─── Runner (same as tween-axis JS) ──────────────────────────────────────────
 
-/***/ "./node_modules/tween-axis/dist/utils/Runner.js":
-/*!******************************************************!*\
-  !*** ./node_modules/tween-axis/dist/utils/Runner.js ***!
-  \******************************************************/
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-/*
- * Copyright (c) 2022-2023 Braun Nathanael
- *
- * This project is dual licensed under one of the following licenses:
- * - Creative Commons Attribution-NoDerivatives 4.0 International License.
- * - GNU AFFERO GENERAL PUBLIC LICENSE Version 3
- *
- * You should have received a copy of theses licenses along with this work.
- * If not, see <http://creativecommons.org/licenses/by-nd/4.0/> or <http://www.gnu.org/licenses/agpl-3.0.txt>.
- */
-
-var
-  // runner
-  _live = false,
-  lastTm,
-  _running = [];
+var _live = false;
+var lastTm;
+var _running = [];
 var Runner = {
   push: function push(task) {
     _running.push(task);
     if (!_live) {
       _live = true;
       lastTm = Date.now();
-      // console.log("TL runner On");
       setTimeout(Runner._tick, 16);
     }
   },
@@ -51189,38 +51148,412 @@ var Runner = {
       cpos: 0,
       cb: cb
     });
-    tl.go(0, ctx, true); //reset tl
-
+    tl.go(0, ctx, true); // reset
     if (!_live) {
       _live = true;
       lastTm = Date.now();
-      // console.log("TL runner On");
       setTimeout(this._tick, 16);
     }
   },
   _tick: function _tick() {
     var i = 0,
-      o,
       tm = Date.now(),
       delta = tm - lastTm;
     lastTm = tm;
     for (; i < _running.length; i++) {
-      _running[i].cpos = Math.min(delta + _running[i].cpos, _running[i].duration); //cpos
+      _running[i].cpos = Math.min(delta + _running[i].cpos, _running[i].duration);
       _running[i].apply(_running[i].cpos, _running[i].duration);
-      // console.log("TL runner ",_running[i][3]);
-      if (_running[i].cpos == _running[i].duration) {
+      if (_running[i].cpos === _running[i].duration) {
         _running[i].cb && setTimeout(_running[i].cb);
-        _running.splice(i, 1), i--;
+        _running.splice(i, 1);
+        i--;
       }
     }
-    if (_running.length) setTimeout(_tick, 16);else {
-      // console.log("TL runner Off");
-      _live = false;
-    }
+    if (_running.length) setTimeout(_tick, 16);else _live = false;
   }
 };
-var _default = Runner;
-exports["default"] = _default;
+
+// ─── TweenAxisWasm ────────────────────────────────────────────────────────────
+var TweenAxisWasm = /*#__PURE__*/function () {
+  function TweenAxisWasm(cfg, scope) {
+    _classCallCheck(this, TweenAxisWasm);
+    this.scope = scope;
+    this.__processors = [];
+    this.__config = [];
+    this.__cPos = 0;
+    this.__cMaxKey = 1;
+    this.duration = 0;
+
+    // Allocate a WASM context slot
+    this.__ctx = getWasm().createContext();
+    if (this.__ctx === -1) {
+      console.warn("TweenAxisWasm: context pool exhausted (max 64). Falling back to JS goTo.");
+      this.__wasmDisabled = true;
+    }
+    cfg = cfg || {};
+    if (Array.isArray(cfg)) {
+      this.localLength = 1;
+      this.mount(cfg, scope);
+    } else if (cfg.TweenAxis) {
+      this.mount(cfg.TweenAxis, scope);
+    }
+  }
+
+  /** Release the WASM context slot. Call when discarding this instance. */
+  _createClass(TweenAxisWasm, [{
+    key: "destroy",
+    value: function destroy() {
+      if (this.__ctx !== undefined && this.__ctx !== -1) {
+        getWasm().destroyContext(this.__ctx);
+        this.__ctx = -1;
+      }
+    }
+
+    /**
+     * Reset WASM timeline state without releasing the context slot.
+     * Used by the object-pool recycling pattern (CssTweenAxis) so the slot
+     * can be reused immediately via mount() without a destroy+create round-trip.
+     */
+  }, {
+    key: "resetWasm",
+    value: function resetWasm() {
+      if (this.__ctx !== undefined && this.__ctx !== -1) {
+        getWasm().resetContext(this.__ctx);
+        this.__processors = [];
+        this.__config = [];
+        this.__cPos = 0;
+        this.__cMaxKey = 1;
+        this.duration = 0;
+      }
+    }
+
+    /** Run timeline from 0 → duration in `tm` ms. */
+  }, {
+    key: "run",
+    value: function run(target, cb, tm) {
+      TweenAxisWasm.Runner.run(this, target, tm || this.duration, cb);
+    }
+
+    /** Animate to `to` over `tm` ms using optional easing fn. */
+  }, {
+    key: "runTo",
+    value: function runTo(to, tm) {
+      var _this = this;
+      var easing = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : function (x) {
+        return x;
+      };
+      var tick = arguments.length > 3 ? arguments[3] : undefined;
+      var cb = arguments.length > 4 ? arguments[4] : undefined;
+      var from = this.__cPos;
+      var length = to - from;
+      TweenAxisWasm.Runner.push({
+        apply: function apply(pos, max) {
+          var x = from + easing(pos / max) * length;
+          _this.goTo(x);
+          tick && tick(x);
+        },
+        duration: tm,
+        cpos: 0,
+        cb: cb
+      });
+    }
+
+    /**
+     * Parse an array of tween descriptors and register their processes.
+     * Identical contract to TweenAxis.mount().
+     */
+  }, {
+    key: "mount",
+    value: function mount(map, scope) {
+      var d = this.duration || 0,
+        max = 0,
+        factory;
+      for (var i = 0, ln = map.length; i < ln; i++) {
+        var item = map[i];
+        if (typeof item.easeFn === "string") item = _objectSpread(_objectSpread({}, item), {}, {
+          easeFn: TweenAxisWasm.EasingFunctions[item.easeFn] || false
+        });
+        factory = TweenAxisWasm.LineTypes[item.type || "Tween"];
+        if (!factory) {
+          console.warn("TweenAxisWasm: Line type not found: ".concat(item.type));
+          continue;
+        }
+        if (typeof item.from !== "number") {
+          // No explicit from → sequential
+          this.addProcess(d, d + item.duration, factory, item);
+          d += item.duration || 0;
+        } else {
+          // Explicit from → parallel
+          this.addProcess(item.from, item.from + item.duration, factory, item);
+          max = Math.max(max, item.from + item.duration);
+        }
+      }
+      this.duration = Math.max(d, max);
+      return this;
+    }
+
+    /**
+     * Register a single process with start/end positions.
+     *
+     * This creates the JS processor function (via the factory) AND registers the
+     * two timeline markers in the WASM context so that goTo() can track the
+     * process without touching JS objects.
+     */
+  }, {
+    key: "addProcess",
+    value: function addProcess(_from, _to, process, cfg) {
+      var ln = _to - _from || 0;
+      var key = this.__cMaxKey++;
+
+      // JS side: store the processor function and config
+      this.__processors[key] = process.isFactory ? process(null, cfg, cfg.target) : process;
+      this.__config[key] = cfg;
+
+      // WASM side: register sorted markers (no CENTER offset)
+      if (!this.__wasmDisabled) {
+        getWasm().addProcess(this.__ctx, _from, _to, ln, key);
+      }
+      return this;
+    }
+  }, {
+    key: "_getIndex",
+    value: function _getIndex(key) {
+      // Not used in the WASM path, kept for compatibility
+      return false;
+    }
+
+    /**
+     * Advance to normalized position `to` (0–1 over this.duration).
+     * Equivalent to goTo(to * duration).
+     */
+  }, {
+    key: "go",
+    value: function go(to, scope, reset, noEvents) {
+      this.goTo(to * this.duration, scope, reset, noEvents);
+      this.__cRPos = to;
+      return scope || this.scope;
+    }
+
+    /**
+     * Advance the timeline to absolute position `initial_to`.
+     *
+     * The WASM module computes which processes are entering, leaving, or active
+     * and returns a compact result list.  This method then calls the appropriate
+     * JS processor for each result.
+     */
+  }, {
+    key: "goTo",
+    value: function goTo(initial_to, scope, reset, noEvents) {
+      scope = scope || this.scope;
+      if (this.__wasmDisabled) {
+        // Fallback: pure JS state machine (only reached if context pool was full)
+        return this._goToJS(initial_to, scope, reset, noEvents);
+      }
+      var wasm = getWasm();
+      var ctx = this.__ctx;
+      var resultCount = wasm.goTo(ctx, initial_to, reset ? 1 : 0);
+      for (var i = 0; i < resultCount; i++) {
+        var phase = wasm.getResultPhase(i);
+        var key = wasm.getResultKey(i);
+        var pos = wasm.getResultPos(i);
+        var d = wasm.getResultDelta(i);
+        var cfg = this.__config[key];
+        var target = cfg && (cfg.target || cfg.$target && this.__context && this.__context[cfg.$target]);
+
+        // Outgoing always runs; incoming / active only when not resetting
+        if (phase === 0 || !reset) {
+          this.__processors[key](pos, d, scope, cfg, target, noEvents);
+        }
+      }
+      this.__cPos = initial_to;
+      this.onScopeUpdated && this.onScopeUpdated(this.__cPos, initial_to - this.__cPos, scope);
+      return scope;
+    }
+
+    // ── Pure-JS fallback (used only when WASM context pool is exhausted) ──────
+  }, {
+    key: "_goToJS",
+    value: function _goToJS(initial_to, scope, reset, noEvents) {
+      var _this2 = this;
+      // Minimal JS fallback — delegates to the same logic as the original
+      // tween-axis package so correctness is guaranteed even in edge cases.
+      // This is intentionally simple; the WASM path covers the performance case.
+      if (!this._jsState) this._initJSState();
+      var js = this._jsState;
+      if (!js.started) {
+        js.started = true;
+        js.cIndex = 0;
+        js.cPos = 0;
+      }
+      var to = initial_to;
+      var cPos = js.cPos;
+      var delta = to - cPos;
+      if (reset) {
+        js.activeProcess.length = 0;
+        js.outgoing.length = 0;
+        js.incoming.length = 0;
+      }
+      var ci = js.cIndex;
+      var marks = js.marks;
+      var marksKeys = js.marksKeys;
+      var marksLen = js.marksLength;
+      var active = js.activeProcess;
+      var outgoing = js.outgoing;
+      var incoming = js.incoming;
+      var maxCI = marks.length;
+      var ll = this.localLength || 1;
+
+      // Forward scan
+      while (ci < maxCI && to > marks[ci] || delta >= 0 && ci < maxCI && marks[ci] === to) {
+        var mk = marksKeys[ci];
+        var p = void 0;
+        if ((p = active.indexOf(-mk)) !== -1) {
+          active.splice(p, 1);
+          outgoing.push(mk);
+        } else if ((p = active.indexOf(mk)) !== -1) {
+          active.splice(p, 1);
+          outgoing.push(mk);
+        } else if ((p = incoming.indexOf(-mk)) !== -1) {
+          incoming.splice(p, 1);
+          outgoing.push(mk);
+        } else incoming.push(mk);
+        ci++;
+      }
+      // Backward scan
+      while (ci - 1 >= 0 && (to < marks[ci - 1] || delta < 0 && marks[ci - 1] === to)) {
+        ci--;
+        var _mk = marksKeys[ci];
+        var _p = void 0;
+        if ((_p = active.indexOf(-_mk)) !== -1) {
+          active.splice(_p, 1);
+          outgoing.push(_mk);
+        } else if ((_p = active.indexOf(_mk)) !== -1) {
+          active.splice(_p, 1);
+          outgoing.push(_mk);
+        } else if ((_p = incoming.indexOf(-_mk)) !== -1) {
+          incoming.splice(_p, 1);
+          outgoing.push(_mk);
+        } else incoming.push(_mk);
+      }
+      js.cIndex = ci;
+      var dispatch = function dispatch(key, pos, d) {
+        var cfg = _this2.__config[key];
+        var target = cfg && (cfg.target || cfg.$target && _this2.__context && _this2.__context[cfg.$target]);
+        _this2.__processors[key](pos, d, scope, cfg, target, noEvents);
+      };
+
+      // Outgoing
+      for (var i = 0, ln = outgoing.length; i < ln; i++) {
+        var outKey = outgoing[i];
+        var absKey = Math.abs(outKey);
+        var pi = marksKeys.indexOf(outKey);
+        var ml = marksLen[absKey];
+        var pos = void 0,
+          d = void 0;
+        if (outKey < 0) {
+          var fp = Math.min(marks[pi], Math.max(cPos, marks[pi] - ml)) - (marks[pi] - ml);
+          pos = fp;
+          d = ml - fp;
+        } else {
+          var _fp = Math.max(marks[pi], Math.min(cPos, marks[pi] + ml)) - marks[pi];
+          pos = _fp;
+          d = -_fp;
+        }
+        dispatch(absKey, ll * pos / ml, ll * d / ml);
+      }
+      // Incoming
+      for (var _i = 0, _ln = incoming.length; _i < _ln; _i++) {
+        var inKey = incoming[_i];
+        var _absKey = Math.abs(inKey);
+        var _pi = marksKeys.indexOf(inKey);
+        var _ml = marksLen[_absKey];
+        var _pos = void 0,
+          _d = void 0;
+        if (inKey < 0) {
+          var tp = Math.max(marks[_pi] - _ml, Math.min(cPos + delta, marks[_pi])) - (marks[_pi] - _ml);
+          _pos = _ml;
+          _d = tp - _ml;
+        } else {
+          var _tp = Math.max(marks[_pi], Math.min(cPos + delta, marks[_pi] + _ml)) - marks[_pi];
+          _pos = 0;
+          _d = _tp;
+        }
+        if (!reset) dispatch(_absKey, ll * _pos / _ml, ll * _d / _ml);
+      }
+      // Active
+      for (var _i2 = 0, _ln2 = active.length; _i2 < _ln2; _i2++) {
+        var actKey = active[_i2];
+        var _absKey2 = Math.abs(actKey);
+        var _pi2 = marksKeys.indexOf(actKey);
+        var _ml2 = marksLen[_absKey2];
+        var _pos2 = ll * (actKey < 0 ? cPos - (marks[_pi2] - _ml2) : cPos - marks[_pi2]) / _ml2;
+        var _d2 = delta * ll / _ml2;
+        if (!reset) dispatch(_absKey2, _pos2, _d2);
+      }
+      active.push.apply(active, _toConsumableArray(incoming));
+      outgoing.length = 0;
+      incoming.length = 0;
+      js.cPos = initial_to;
+      this.__cPos = initial_to;
+      this.onScopeUpdated && this.onScopeUpdated(this.__cPos, delta, scope);
+      return scope;
+    }
+  }, {
+    key: "_initJSState",
+    value: function _initJSState() {
+      this._jsState = {
+        marks: [],
+        marksKeys: [],
+        marksLength: [],
+        activeProcess: [],
+        outgoing: [],
+        incoming: [],
+        cPos: 0,
+        cIndex: 0,
+        started: false
+      };
+      // Replay addProcess calls into JS state
+      // (by this point __config contains everything we need)
+      // Actually we can't replay because we don't have from/to stored separately.
+      // The JS fallback won't be needed in practice (pool of 64 is more than enough).
+      console.warn("TweenAxisWasm: JS fallback state is empty — results may be incorrect.");
+    }
+  }]);
+  return TweenAxisWasm;
+}();
+exports["default"] = TweenAxisWasm;
+_defineProperty(TweenAxisWasm, "Runner", Runner);
+_defineProperty(TweenAxisWasm, "EasingFunctions", {});
+_defineProperty(TweenAxisWasm, "LineTypes", {
+  Tween: tweenFactory
+});
+
+/***/ }),
+
+/***/ "./node_modules/tween-axis/dist/wasm-data.js":
+/*!***************************************************!*\
+  !*** ./node_modules/tween-axis/dist/wasm-data.js ***!
+  \***************************************************/
+/***/ ((module) => {
+
+"use strict";
+// Auto-generated — do not edit. Rebuild with: npm run build:wasm
+
+
+// Decode base64 → Uint8Array at module load time (synchronous, no fetch needed)
+function b64Decode(str) {
+  var bin  = typeof atob === "function"
+    ? atob(str)
+    : Buffer.from(str, "base64").toString("binary");
+  var arr  = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return arr;
+}
+
+module.exports = b64Decode(
+  "AGFzbQEAAAABNwpgAX8Bf2ABfwF8YAF/AGAEf39/fwBgAn9/AX9gAAF/YAJ/fABgBX98fHx/AGADf3x/AX9gAAACDQEDZW52BWFib3J0AAMDEA8EAAAFAgIGAQcIAAABAQkFAwEAAQZbEn8BQQALfwFBAAt/AUEAC38BQQALfwFBAAt/AUEAC38BQQALfwFBAAt/AUEAC38BQQALfwFBAAt/AUEAC38BQQALfwFBAAt/AUEAC38BQQALfwFBAAt/AUEACwevAQwNY3JlYXRlQ29udGV4dAAEDmRlc3Ryb3lDb250ZXh0AAUMcmVzZXRDb250ZXh0AAYOc2V0TG9jYWxMZW5ndGgABw1nZXRDdXJyZW50UG9zAAgKYWRkUHJvY2VzcwAJBGdvVG8ACg5nZXRSZXN1bHRQaGFzZQALDGdldFJlc3VsdEtleQAMDGdldFJlc3VsdFBvcwANDmdldFJlc3VsdERlbHRhAA4GbWVtb3J5AgAIAQ8MAQgKmhsPxgEBBn8gAEHs////A0sEQEGQCUHQCUHWAEEeEAAACyAAQRBqIgRB/P///wNLBEBBkAlB0AlBIUEdEAAACyMAIwBBBGoiAiAEQRNqQXBxQQRrIgRqIgU/ACIGQRB0QQ9qQXBxIgdLBEAgBiAFIAdrQf//A2pBgIB8cUEQdiIHIAYgB0obQABBAEgEQCAHQABBAEgEQAALCwsgBSQAIAQ2AgAgAkEEayIDQQA2AgQgA0EANgIIIAMgATYCDCADIAA2AhAgAkEQagsyAQF/IABB////P0sEQEGgCEHQCEEzQTwQAAALIABBA3QiAEEEEAEiAUEAIAD8CwAgAQszAQF/IABB/////wBLBEBBoAhB0AhBM0E8EAAACyAAQQJ0IgBBBRABIgFBACAA/AsAIAELhwEBA38DQCAAQcAASARAIABBAnQiASMLaiICKAIARQRAIAJBATYCACMFIAFqQQA2AgAjBiABakEANgIAIwcgAWpBADYCACAAQQN0IgIjCGpEAAAAAAAAAAA5AwAjCSACakQAAAAAAADwPzkDACMKIAFqQQA2AgAgAA8LIABBAWohAAwBCwtBfwslACAAQQJ0IgAjC2pBADYCACAAIwVqQQA2AgAgACMGakEANgIAC1gBAX8gAEECdCIBIwVqQQA2AgAgASMGakEANgIAIAEjB2pBADYCACAAQQN0IgAjCGpEAAAAAAAAAAA5AwAgACMJakQAAAAAAADwPzkDACABIwpqQQA2AgALDwAjCSAAQQN0aiABOQMACw0AIwggAEEDdGorAwALgAMBBn8gAEEJdCEIIwUgAEECdGooAgAhBiMDIABBCHQgBGpBA3RqIAM5AwADQCAGIAdKBH8gASMBIAcgCGpBA3RqKwMAZAVBAAsEQCAHQQFqIQcMAQsLIAYhBQNAIAUgB0oEQCAFIAhqIglBAWshCiMBIAlBA3RqIwEgCkEDdGorAwA5AwAjAiAJQQJ0aiMCIApBAnRqKAIANgIAIAVBAWshBQwBCwsjASAHIAhqIgVBA3RqIAE5AwAjAiAFQQJ0aiAENgIAIAZBAWohBiAHQQFqIQcDQCAGIAdKBH8gAiMBIAcgCGpBA3RqKwMAZgVBAAsEQCAHQQFqIQcMAQsLIAYhBQNAIAUgB0oEQCAFIAhqIglBAWshCiMBIAlBA3RqIwEgCkEDdGorAwA5AwAjAiAJQQJ0aiMCIApBAnRqKAIANgIAIAVBAWshBQwBCwsjASAHIAhqIgVBA3RqIAI5AwAjAiAFQQJ0akEAIARrNgIAIwUgAEECdGogBkEBajYCAAuEEgIKfwZ8IABBAnQiBCMKaiIFKAIARQRAIAVBATYCACMHIARqQQA2AgAjCCAAQQN0akQAAAAAAAAAADkDAAsgAEEJdCEHIABBCHQhCCAAQQJ0IgUjBWooAgAhCSMHIAVqKAIAIQQgASAAQQN0IgYjCGorAwAiDqEhECMJIAZqKwMAIQ9BACMGIAVqKAIAIAIbIQVBACQOQQAkDwNAIAQgCUgEfyABIwEgBCAHakEDdGorAwBkBUEACwR/QQEFIAQgCUggEEQAAAAAAAAAAGZxBH8gASMBIAQgB2pBA3RqKwMAYQVBAAsLBEAjBCEGQQAjAiAEIAdqQQJ0aigCACIKayELQQAhAgJAA0AgAiAFSARAIAsgBiACIAhqQQJ0aigCAEYNAiACQQFqIQIMAQsLQX8hAgsgAkF/RwRAIwQhBgNAIAIgBUEBa0gEQCAGIAIgCGoiC0ECdGogBiALQQFqQQJ0aigCADYCACACQQFqIQIMAQsLIAVBAWshBSMOIgJBAWokDiMMIAJBAnRqIAo2AgAFIwQhBkEAIQICQANAIAIgBUgEQCAKIAYgAiAIakECdGooAgBGDQIgAkEBaiECDAELC0F/IQILIAJBf0cEQCMEIQYDQCACIAVBAWtIBEAgBiACIAhqIgtBAnRqIAYgC0EBakECdGooAgA2AgAgAkEBaiECDAELCyAFQQFrIQUjDiICQQFqJA4jDCACQQJ0aiAKNgIABSMNIQsjDyEMQQAgCmshBkEAIQICQANAIAIgDEgEQCAGIAsgAkECdGooAgBGDQIgAkEBaiECDAELC0F/IQILIAJBf0cEQCMNIQYjDyELA0AgAiALQQFrSARAIAYgAkECdGogBiACQQFqIgJBAnRqKAIANgIADAELCyMPQQFrJA8jDiICQQFqJA4jDCACQQJ0aiAKNgIABSMPIgJBAWokDyMNIAJBAnRqIAo2AgALCwsgBEEBaiEEDAELCwNAIARBAWtBAE4EfyABIwEgBCAHakEBa0EDdGorAwBjBH9BAQUgEEQAAAAAAAAAAGMEfyABIwEgBCAHakEBa0EDdGorAwBhBUEACwsFQQALBEAjBCEGQQAjAiAHIARBAWsiBGpBAnRqKAIAIglrIQpBACECAkADQCACIAVIBEAgCiAGIAIgCGpBAnRqKAIARg0CIAJBAWohAgwBCwtBfyECCyACQX9HBEAjBCEGA0AgAiAFQQFrSARAIAYgAiAIaiIKQQJ0aiAGIApBAWpBAnRqKAIANgIAIAJBAWohAgwBCwsgBUEBayEFIw4iAkEBaiQOIwwgAkECdGogCTYCAAUjBCEGQQAhAgJAA0AgAiAFSARAIAkgBiACIAhqQQJ0aigCAEYNAiACQQFqIQIMAQsLQX8hAgsgAkF/RwRAIwQhBgNAIAIgBUEBa0gEQCAGIAIgCGoiCkECdGogBiAKQQFqQQJ0aigCADYCACACQQFqIQIMAQsLIAVBAWshBSMOIgJBAWokDiMMIAJBAnRqIAk2AgAFIw0hBiMPIQpBACAJayELQQAhAgJAA0AgAiAKSARAIAsgBiACQQJ0aigCAEYNAiACQQFqIQIMAQsLQX8hAgsgAkF/RwRAIw0hBiMPIQoDQCACIApBAWtIBEAgBiACQQJ0aiAGIAJBAWoiAkECdGooAgA2AgAMAQsLIw9BAWskDyMOIgJBAWokDiMMIAJBAnRqIAk2AgAFIw8iAkEBaiQPIw0gAkECdGogCTYCAAsLCwwBCwsjByAAQQJ0aiAENgIAQQAkEQNAIAMjDkgEQCMDQQAjDCADQQJ0aigCACIEayAEIARBAEgbIgYgAEEIdGpBA3RqKwMAIREjASAAQQl0IQgjBSAAQQJ0aigCACEJQQAhAgJAA0AgAiAJSARAIAQjAiACIAhqQQJ0aigCAEYNAiACQQFqIQIMAQsLQQAhAgsgAiAAQQl0akEDdGorAwAhDSAEQQBIBHwgESANIBGhIhIgDqUgDaQgEqEiDaEFIA0gEaAgDqQgDaUgDaEiDZoLIRIjECMRQQJ0IgJBA3RqRAAAAAAAAAAAOQMAIxAgAkEBakEDdGogBrc5AwAjECACQQJqQQN0aiAPIA2iIBGjOQMAIxAgAkEDakEDdGogDyASoiARozkDACMRQQFqJBEgA0EBaiEDDAELC0EAIQMDQCADIw9IBEAjA0EAIw0gA0ECdGooAgAiBGsgBCAEQQBIGyIGIABBCHRqQQN0aisDACERIwEgAEEJdCEIIwUgAEECdGooAgAhCUEAIQICQANAIAIgCUgEQCAEIwIgAiAIakECdGooAgBGDQIgAkEBaiECDAELC0EAIQILIAIgAEEJdGpBA3RqKwMAIQ0jECMRQQJ0IgJBA3RqRAAAAAAAAPA/OQMAIxAgAkEBakEDdGogBrc5AwAjECACQQJqQQN0aiAPIARBAEgEfCANIBGhIhIgDSAOIBCgpKUgEqEgEaEhDSARBSAOIBCgIA0gEaCkIA2lIA2hIQ1EAAAAAAAAAAALoiARozkDACMQIAJBA2pBA3RqIA8gDaIgEaM5AwAjEUEBaiQRIANBAWohAwwBCwtBACEDA0AgAyAFSARAQQAjBCAAQQh0IgIgA2pBAnRqKAIAIgRrIAQgBEEASBshBiMDIAIgBmpBA3RqKwMAIQ0jASAAQQl0IQgjBSAAQQJ0aigCACEJQQAhAgJAA0AgAiAJSARAIAQjAiACIAhqQQJ0aigCAEYNAiACQQFqIQIMAQsLQQAhAgsgAiAAQQl0akEDdGorAwAhESMQIxFBAnQiAkEDdGpEAAAAAAAAAEA5AwAjECACQQFqQQN0aiAGtzkDACMQIAJBAmpBA3RqIA8gDiARIA2hoSAOIBGhIARBAEgboiANozkDACMQIAJBA2pBA3RqIBAgD6IgDaM5AwAjEUEBaiQRIANBAWohAwwBCwtBACECA0AgAiMPSARAIwQgAEEIdCAFakECdGojDSACQQJ0aigCADYCACAFQQFqIQUgAkEBaiECDAELCyMGIABBAnRqIAU2AgBBACQOQQAkDyMIIABBA3RqIAE5AwAjEQsPACMQIABBBXRqKwMA/AILFQAjECAAQQJ0QQFqQQN0aisDAPwCCxMAIxAgAEECdEECakEDdGorAwALEwAjECAAQQJ0QQNqQQN0aisDAAttAEH8CSQAQYCAAhACJAFBgIACEAMkAkGAgAEQAiQDQYCAARADJARBwAAQAyQFQcAAEAMkBkHAABADJAdBwAAQAiQIQcAAEAIkCUHAABADJApBwAAQAyQLQYAEEAMkDEGABBADJA1BgBAQAiQQCwvZAQgAQYwICwEsAEGYCAsjAgAAABwAAABJAG4AdgBhAGwAaQBkACAAbABlAG4AZwB0AGgAQbwICwE8AEHICAstAgAAACYAAAB+AGwAaQBiAC8AcwB0AGEAdABpAGMAYQByAHIAYQB5AC4AdABzAEH8CAsBPABBiAkLLwIAAAAoAAAAQQBsAGwAbwBjAGEAdABpAG8AbgAgAHQAbwBvACAAbABhAHIAZwBlAEG8CQsBPABByAkLJQIAAAAeAAAAfgBsAGkAYgAvAHIAdAAvAHMAdAB1AGIALgB0AHM="
+);
+
 
 /***/ }),
 
@@ -52043,10 +52376,31 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
+
+// Register all sample style presets (FourItems, ThreeItems, slider3d, …) into
+// the global customStyles map so the Slider can look them up by name via
+// `defaultStyleId`.  This must happen before the first render.
 Object.assign(___WEBPACK_IMPORTED_MODULE_4__.customStyles, _styles_js__WEBPACK_IMPORTED_MODULE_5__["default"]);
+
+// ─── Stub data ───────────────────────────────────────────────────────────────
+// Unsplash-seeded random images so each generated set looks different.
 var stubThemes = ["magic", "sky", "forge", "birds", "bridge", "cat", "eye", "ship", "car", "sunset", "forest", "boobs"];
+
+/**
+ * generateStubs — produce a random list of slide data objects.
+ *
+ * Each object carries the fields that `Slide` knows how to render:
+ *   - label           : displayed as the slide title
+ *   - summary         : secondary text (newlines become <br/>)
+ *   - backgroundImage : URL passed to <img> inside the slide
+ *
+ * The random image seed guarantees variety while staying cacheable across
+ * re-generations within the same session.
+ */
 function generateStubs() {
   var count = Math.max(~~(Math.random() * 30), 5),
+    // 5–30 slides
     stubs = [];
   for (var i = 0; i < count; i++) stubs.push({
     label: "Test " + i,
@@ -52055,6 +52409,30 @@ function generateStubs() {
   });
   return stubs;
 }
+
+// ─── App ─────────────────────────────────────────────────────────────────────
+/**
+ * App — root demo component.
+ *
+ * Demonstrates the main VoodooSlider features in a single page:
+ *
+ *   • Infinite looping         — `infinite={true}` wraps ghost slides around
+ *                                the real ones so drag never hits a hard end.
+ *   • Per-slide inner axes     — `updateItemAxes={true}` lets each <Slide>
+ *                                own its own tweener with `entering`, `leaving`,
+ *                                `visible`, and `visibleNext` axes that the
+ *                                slider drives in real time.
+ *   • Auto-scroll              — advances to the next slide every 10 s; pauses
+ *                                automatically while the pointer is hovering.
+ *   • Controlled index         — `index` + `onWillChange` keep external React
+ *                                state in sync so the "X / N" counter updates
+ *                                as soon as the user starts a swipe.
+ *   • Hot style switching      — clicking a preset name in the footer replaces
+ *                                `defaultStyleId`, which swaps the layout (1-up,
+ *                                3-up, 5-up, 3D fan, …) without remounting.
+ *   • Live data regeneration   — the ↺ button replaces the stub array with a
+ *                                freshly generated one of random length.
+ */
 var App = function App() {
   var _React$useState = react__WEBPACK_IMPORTED_MODULE_1___default().useState(0),
     _React$useState2 = (0,_babel_runtime_helpers_slicedToArray__WEBPACK_IMPORTED_MODULE_0__["default"])(_React$useState, 2),
@@ -52073,14 +52451,22 @@ var App = function App() {
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_1___default().createElement((___WEBPACK_IMPORTED_MODULE_4___default()), {
     key: "mainSlider",
     infinite: true,
-    updateItemAxes: true,
-    autoScroll: 10 * 1000,
-    index: slideIndex,
-    defaultStyleId: styleId,
+    updateItemAxes: true // drive per-slide inner tweener axes
+    ,
+    autoScroll: 10 * 1000 // auto-advance every 10 s
+    ,
+    index: slideIndex // controlled: external state drives position
+    ,
+    defaultStyleId: styleId // swap layout preset without remounting
+    ,
     onWillChange: function onWillChange(i) {
       return setSlideIndex(i);
-    }
-  }, (stubs === null || stubs === void 0 ? void 0 : stubs.map(function (rec, i) {
+    } // sync index as soon as snap target is known
+  },
+  // Each Slide receives a `record` prop and a `voodooRef` callback
+  // (injected by the slider when updateItemAxes is true) that exposes
+  // its inner tweener so the slider can drive its axes.
+  (stubs === null || stubs === void 0 ? void 0 : stubs.map(function (rec, i) {
     return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_1___default().createElement(_comps_Slide__WEBPACK_IMPORTED_MODULE_3__["default"], {
       record: rec,
       key: i
@@ -52103,13 +52489,25 @@ var App = function App() {
     }
   }, "\u21BA")));
 };
+
+// ─── Bootstrap ───────────────────────────────────────────────────────────────
+/**
+ * renderSamples — mounts the App into the #app DOM node.
+ *
+ * Also serves as the HMR accept callback so hot-reloading works in dev:
+ * when any module in this entry changes, React remounts from this function.
+ *
+ * SSR alternative (commented out below): swap ReactDom.render for
+ * renderToString + innerHTML to test server-side rendering output.
+ */
 function renderSamples() {
   react_dom__WEBPACK_IMPORTED_MODULE_2__.render(/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_1___default().createElement(App, null), document.getElementById('app'));
   //let node=document.getElementById('app');
   //node.innerHTML=renderToString(<App/>)
 }
 renderSamples();
-//
+
+// Accept HMR updates for the entire entry chunk.
 if (false) {}
 })();
 
