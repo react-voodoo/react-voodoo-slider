@@ -5,7 +5,7 @@
   <a href="https://www.npmjs.com/package/react-voodoo-slider">
     <img src="https://img.shields.io/npm/v/react-voodoo-slider.svg" alt="npm version" />
   </a>
-  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT license" />
+  <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0 license" />
   <img src="https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat" alt="contributions welcome" />
 </p>
 
@@ -239,4 +239,4 @@ Each slide's tween descriptors are the shared `entering + leaving` curve, time-s
 
 ## License
 
-[MIT](./LICENSE.MD)
+[Apache-2.0](./LICENSE.MD) — © Nathanael BRAUN
